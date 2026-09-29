@@ -2,11 +2,12 @@ const SUPABASE_URL = "https://aanxnlabaqmsvxdcnmqg.supabase.co";
 
 const SUPABASE_KEY = "sb_publishable_z2W6GCRu51hFfT08w17NOA_JeoVP8HS";
 
-const supabase = window.supabase.createClient(
+const supabaseClient = window.supabase.createClient(
     SUPABASE_URL,
     SUPABASE_KEY
 );
-console.log("Supabase connected:", supabase);
+
+console.log("Supabase connected:", supabaseClient);
 
 const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
