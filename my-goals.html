@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>My Goals — SharedGoal</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body class="dashboard-page">
+
+    <nav class="nav">
+        <a class="logo" href="index.html">SharedGoal</a>
+
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a class="active" href="my-goals.html">My Goals</a>
+            <a href="help.html">Help Someone</a>
+        </div>
+
+        <div class="nav-actions">
+            <button class="icon-btn" id="notificationBtn">♧</button>
+            <button class="btn" data-create>+ Create Goal</button>
+        </div>
+    </nav>
+
+    <main class="dashboard">
+
+        <header class="dash-head">
+            <div>
+                <span class="eyebrow">Your shared moments</span>
+                <h1>My Goals</h1>
+                <p>
+                    Keep every contribution, person and decision in one place.
+                </p>
+            </div>
+
+            <button class="btn" data-create>
+                + New Goal
+            </button>
+        </header>
+
+        <div class="goal-tabs">
+            <button class="active">Aarav's Birthday</button>
+            <button>Goa Trip</button>
+            <button>Farewell Gift</button>
+        </div>
+
+        <section class="main-goal">
+
+            <img
+                src="assets/images/occasion-01-birthday.png"
+                alt="Goal"
+            >
+
+            <div class="goal-info">
+
+                <div class="goal-label">
+                    🎂 Birthday · Active
+                </div>
+
+                <h2>
+                    Aarav's Birthday Gift
+                </h2>
+
+                <p>
+                    Let's get Aarav something he'll actually love.
+                </p>
+
+                <div class="amount">
+                    <strong>₹18,500</strong>
+                    <span> of ₹25,000</span>
+                </div>
+
+                <div class="bar">
+                    <i style="width:74%"></i>
+                </div>
+
+                <div class="meta">
+                    <span>74% collected</span>
+                    <span>12 days left</span>
+                    <span>6 members</span>
+                </div>
+
+                <div class="actions">
+                    <button
+                        class="btn"
+                        data-contribute="Aarav's Birthday Gift"
+                    >
+                        Contribute
+                    </button>
+
+                    <button class="btn ghost">
+                        Manage Goal
+                    </button>
+                </div>
+
+            </div>
+
+        </section>
+
+        <div class="dash-grid">
+
+            <article class="card">
+
+                <div class="card-top">
+                    <h3>Your Contribution</h3>
+                    <span class="status">Confirmed</span>
+                </div>
+
+                <strong class="big-number">
+                    ₹3,000
+                </strong>
+
+                <p>
+                    Thanks for being part of this goal.
+                </p>
+
+                <button
+                    class="text-link"
+                    data-contribute="Aarav's Birthday Gift"
+                >
+                    Add contribution →
+                </button>
+
+            </article>
+
+            <article class="card">
+
+                <div class="card-top">
+                    <h3>Members</h3>
+                    <span>6 people</span>
+                </div>
+
+                <div class="avatars">
+                    <i>AK</i>
+                    <i>PS</i>
+                    <i>RJ</i>
+                    <i>DM</i>
+                    <i>+</i>
+                </div>
+
+                <p>
+                    Creator · 1 admin · 4 contributors
+                </p>
+
+                <button class="text-link">
+                    View members →
+                </button>
+
+            </article>
+
+            <article class="card">
+
+                <h3>Recent Contributions</h3>
+
+                <div class="rows">
+                    <p>
+                        <b>Priya</b>
+                        <span>₹4,000</span>
+                    </p>
+
+                    <p>
+                        <b>Rohan</b>
+                        <span>₹2,500</span>
+                    </p>
+
+                    <p>
+                        <b>Dhruv</b>
+                        <span>₹2,000</span>
+                    </p>
+                </div>
+
+            </article>
+
+            <article class="card">
+
+                <h3>AI Gift Ideas</h3>
+
+                <div class="gift-mini">
+                    <p>
+                        🎧 Premium headphones
+                        <b>₹4,999</b>
+                    </p>
+
+                    <p>
+                        ⌚ Smart watch
+                        <b>₹6,499</b>
+                    </p>
+                </div>
+
+                <button class="text-link">
+                    See gift ideas →
+                </button>
+
+            </article>
+
+            <article class="card wide">
+
+                <div class="card-top">
+                    <h3>Goal Activity</h3>
+                    <span>Today</span>
+                </div>
+
+                <div class="rows">
+                    <p>
+                        <b>Priya contributed ₹4,000</b>
+                        <span>2h ago</span>
+                    </p>
+
+                    <p>
+                        <b>Rohan joined the goal</b>
+                        <span>Yesterday</span>
+                    </p>
+
+                    <p>
+                        <b>Goal target updated</b>
+                        <span>2d ago</span>
+                    </p>
+                </div>
+
+            </article>
+
+        </div>
+
+    </main>
+
+    <div class="overlay" id="createGoalOverlay">
+
+        <div class="modal">
+
+            <button class="close">×</button>
+
+            <span class="eyebrow">
+                Create a goal
+            </span>
+
+            <h2>
+                Start something together.
+            </h2>
+
+            <label>
+                Goal name
+            </label>
+
+            <input
+                id="goalName"
+                placeholder="e.g. Birthday Gift"
+            >
+
+            <label>
+                Target amount
+            </label>
+
+            <input
+                id="goalAmount"
+                type="number"
+                placeholder="₹ 10,000"
+            >
+
+            <label>
+                Deadline
+            </label>
+
+            <input
+                id="goalDeadline"
+                type="date"
+            >
+
+            <button
+                class="btn full"
+                id="finishGoal"
+            >
+                Create Goal
+            </button>
+
+        </div>
+
+    </div>
+
+    <div class="overlay" id="notificationsOverlay">
+
+        <div class="modal small">
+
+            <button class="close">×</button>
+
+            <span class="eyebrow">
+                Updates
+            </span>
+
+            <h2>
+                Notifications
+            </h2>
+
+            <div class="notes">
+
+                <p>
+                    <b>Priya contributed ₹4,000</b>
+                    <small>2 hours ago</small>
+                </p>
+
+                <p>
+                    <b>Rohan joined your goal</b>
+                    <small>Yesterday</small>
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="overlay" id="contributionOverlay">
+
+        <div class="modal small">
+
+            <button class="close">×</button>
+
+            <span class="eyebrow">
+                Contribute
+            </span>
+
+            <h2 id="contributionGoal">
+                SharedGoal
+            </h2>
+
+            <label>
+                Amount
+            </label>
+
+            <input
+                id="contributionAmount"
+                type="number"
+                placeholder="₹ 1,000"
+            >
+
+            <div class="quick">
+                <button data-amount="500">₹500</button>
+                <button data-amount="1000">₹1,000</button>
+                <button data-amount="2000">₹2,000</button>
+            </div>
+
+            <div class="payments">
+                <button class="active">UPI</button>
+                <button>Razorpay</button>
+                <button>Cash</button>
+            </div>
+
+            <button
+                class="btn full"
+                id="makeContributionBtn"
+            >
+                Continue
+            </button>
+
+        </div>
+
+    </div>
+
+    <script src="js/script.js"></script>
+
+</body>
+
+</html>

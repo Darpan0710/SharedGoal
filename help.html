@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Help Someone — SharedGoal</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body class="dashboard-page">
+
+    <nav class="nav">
+        <a class="logo" href="index.html">SharedGoal</a>
+
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="my-goals.html">My Goals</a>
+            <a class="active" href="help.html">Help Someone</a>
+        </div>
+
+        <div class="nav-actions">
+            <button class="icon-btn" id="notificationBtn">♧</button>
+            <button class="btn" id="createHelpBtn">+ Create Request</button>
+        </div>
+    </nav>
+
+    <main class="dashboard">
+
+        <header class="dash-head">
+            <div>
+                <span class="eyebrow">Give where it matters</span>
+                <h1>Help Someone</h1>
+                <p>Support genuine causes and make a real difference, together.</p>
+            </div>
+
+            <button class="btn" id="bottomHelpBtn">Create Help Request</button>
+        </header>
+
+        <div class="stats">
+            <article>
+                <strong>24</strong>
+                <span>Verified requests</span>
+            </article>
+
+            <article>
+                <strong>₹8.4L</strong>
+                <span>Contributed together</span>
+            </article>
+
+            <article>
+                <strong>312</strong>
+                <span>People helped</span>
+            </article>
+        </div>
+
+        <div class="help-tools">
+            <div class="tabs">
+                <button class="active" data-category="all">All</button>
+                <button data-category="education">Education</button>
+                <button data-category="medical">Medical</button>
+                <button data-category="basic">Basic Needs</button>
+                <button data-category="assistance">Assistance</button>
+            </div>
+
+            <input id="helpSearch" placeholder="Search requests...">
+        </div>
+
+        <section class="request-grid">
+
+            <article class="request" data-category="education">
+                <img src="assets/images/help-01-education.png" alt="Education">
+
+                <div>
+                    <span class="tag">✓ VERIFIED · EDUCATION</span>
+
+                    <h3>Help Riya continue her studies</h3>
+
+                    <p>
+                        Support school fees and learning materials for the coming year.
+                    </p>
+
+                    <div class="bar">
+                        <i style="width:68%"></i>
+                    </div>
+
+                    <div class="request-meta">
+                        <span>₹34,000 of ₹50,000</span>
+                        <span>18 days left</span>
+                    </div>
+
+                    <button class="btn small" data-contribute="Help Riya continue her studies">
+                        Contribute
+                    </button>
+                </div>
+            </article>
+
+            <article class="request" data-category="medical">
+                <img src="assets/images/help-02-medical.png" alt="Medical">
+
+                <div>
+                    <span class="tag">✓ VERIFIED · MEDICAL</span>
+
+                    <h3>Support a family medical need</h3>
+
+                    <p>
+                        Help cover treatment and recovery expenses.
+                    </p>
+
+                    <div class="bar">
+                        <i style="width:52%"></i>
+                    </div>
+
+                    <div class="request-meta">
+                        <span>₹52,000 of ₹1,00,000</span>
+                        <span>11 days left</span>
+                    </div>
+
+                    <button class="btn small" data-contribute="Support a family medical need">
+                        Contribute
+                    </button>
+                </div>
+            </article>
+
+            <article class="request" data-category="basic">
+                <img src="assets/images/help-04-basic.png" alt="Basic needs">
+
+                <div>
+                    <span class="tag">✓ VERIFIED · BASIC NEEDS</span>
+
+                    <h3>Essential supplies for a family</h3>
+
+                    <p>
+                        Help provide groceries and household supplies.
+                    </p>
+
+                    <div class="bar">
+                        <i style="width:81%"></i>
+                    </div>
+
+                    <div class="request-meta">
+                        <span>₹24,300 of ₹30,000</span>
+                        <span>7 days left</span>
+                    </div>
+
+                    <button class="btn small" data-contribute="Essential supplies for a family">
+                        Contribute
+                    </button>
+                </div>
+            </article>
+
+            <article class="request" data-category="assistance">
+                <img src="assets/images/help-03-assistance.png" alt="Assistance">
+
+                <div>
+                    <span class="tag">✓ VERIFIED · ASSISTANCE</span>
+
+                    <h3>Help rebuild after a difficult month</h3>
+
+                    <p>
+                        Community support for rent, essentials and a fresh start.
+                    </p>
+
+                    <div class="bar">
+                        <i style="width:43%"></i>
+                    </div>
+
+                    <div class="request-meta">
+                        <span>₹17,200 of ₹40,000</span>
+                        <span>21 days left</span>
+                    </div>
+
+                    <button class="btn small" data-contribute="Help rebuild after a difficult month">
+                        Contribute
+                    </button>
+                </div>
+            </article>
+
+        </section>
+
+        <section class="verify">
+            <span class="eyebrow">Trust matters</span>
+
+            <h2>
+                Every public request goes through a verification process.
+            </h2>
+
+            <div>
+                <article>
+                    <b>01</b>
+                    <h3>Submit</h3>
+                    <p>
+                        Requester shares the story and supporting information.
+                    </p>
+                </article>
+
+                <article>
+                    <b>02</b>
+                    <h3>Review</h3>
+                    <p>
+                        Verification checks the submitted proof.
+                    </p>
+                </article>
+
+                <article>
+                    <b>03</b>
+                    <h3>Verify</h3>
+                    <p>
+                        Verified requests can be discovered and supported.
+                    </p>
+                </article>
+            </div>
+        </section>
+
+    </main>
+
+    <div class="overlay" id="helpOverlay">
+        <div class="modal">
+            <button class="close">×</button>
+
+            <span class="eyebrow">Help Someone</span>
+
+            <h2>Create a request</h2>
+
+            <label>Title</label>
+            <input id="helpTitle" placeholder="What do you need help with?">
+
+            <label>Category</label>
+            <select>
+                <option>Education</option>
+                <option>Medical</option>
+                <option>Basic Needs</option>
+                <option>Assistance</option>
+            </select>
+
+            <label>Story</label>
+            <textarea placeholder="Tell people what happened..."></textarea>
+
+            <label>Target amount</label>
+            <input type="number" placeholder="₹ 50,000">
+
+            <button class="btn full" id="submitHelpBtn">
+                Submit for verification
+            </button>
+        </div>
+    </div>
+
+    <div class="overlay" id="notificationsOverlay">
+        <div class="modal small">
+            <button class="close">×</button>
+
+            <span class="eyebrow">Updates</span>
+
+            <h2>Notifications</h2>
+
+            <div class="notes">
+                <p>
+                    <b>Your request is under review.</b>
+                    <small>Today</small>
+                </p>
+
+                <p>
+                    <b>New verified request in Education</b>
+                    <small>Yesterday</small>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="overlay" id="contributionOverlay">
+        <div class="modal small">
+            <button class="close">×</button>
+
+            <span class="eyebrow">Contribute</span>
+
+            <h2 id="contributionGoal">SharedGoal</h2>
+
+            <label>Amount</label>
+            <input id="contributionAmount" type="number" placeholder="₹ 1,000">
+
+            <div class="quick">
+                <button data-amount="500">₹500</button>
+                <button data-amount="1000">₹1,000</button>
+                <button data-amount="2000">₹2,000</button>
+            </div>
+
+            <div class="payments">
+                <button class="active">UPI</button>
+                <button>Razorpay</button>
+                <button>Cash</button>
+            </div>
+
+            <button class="btn full" id="makeContributionBtn">
+                Continue
+            </button>
+        </div>
+    </div>
+
+    <script src="js/script.js"></script>
+
+</body>
+</html>
