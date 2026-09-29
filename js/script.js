@@ -6,7 +6,7 @@ const supabase = window.supabase.createClient(
     SUPABASE_URL,
     SUPABASE_KEY
 );
-console.log("Supabase connected:", supabaseClient);
+console.log("Supabase connected:", supabase);
 
 const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
