@@ -129,7 +129,18 @@ $("#finishGoal")?.addEventListener(
 
 $("#googleLoginBtn")?.addEventListener(
     "click",
-    () => alert("Google Login will be connected with Supabase.")
+    async () => {
+        const { error } = await supabaseClient.auth.signInWithOAuth({
+            provider: "google",
+            options: {
+                redirectTo: window.location.origin + window.location.pathname
+            }
+        });
+
+        if (error) {
+            alert("Google Login failed: " + error.message);
+        }
+    }
 );
 
 $$("[data-contribute]").forEach(
@@ -223,3 +234,16 @@ $("#menuBtn")?.addEventListener(
         $("#mobileMenu")?.classList.toggle("show");
     }
 );
+
+async function checkLogin() {
+    const { data } = await supabaseClient.auth.getSession();
+
+    if (data.session) {
+        console.log(
+            "Logged in:",
+            data.session.user.email
+        );
+    }
+}
+
+checkLogin();
