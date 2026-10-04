@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Help Someone — SharedGoal</title>
+    <meta name="description" content="Support genuine causes and make a real difference together with verified community contributions.">
+    <link rel="icon" type="image/svg+xml" href="assets/images/logo.svg">
+    <link rel="apple-touch-icon" href="assets/images/logo.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="dashboard-page">
+    <div class="nav-wrap">
+        <nav class="nav">
+            <a class="logo" href="index.html">
+                <img src="assets/images/logo.svg" alt="SharedGoal Logo" class="brand-logo-img">
+                <span>SharedGoal<span class="logo-dot"></span></span>
+            </a>
+            <div class="nav-links">
+                <a href="index.html">Home</a>
+                <a href="my-goals.html">My Goals</a>
+                <a class="active" href="help.html">Help Someone</a>
+            </div>
+            <div class="nav-actions">
+                <button class="user-profile-btn" data-profile aria-label="User Profile">
+                    <span class="user-avatar-circle">D</span>
+                    <span class="name">Darpan Personal</span>
+                </button>
+                <button class="icon-btn notif-btn-header" id="notificationBtn" aria-label="Notifications">
+                    <span class="notif-badge"></span>
+                    🔔
+                </button>
+                <button class="btn nav-create-btn" id="createHelpBtn">+ Request Help</button>
+                <button class="menu-btn" id="menuBtn" aria-label="Open navigation menu" aria-expanded="false" aria-controls="mobileMenu">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                        <circle cx="12" cy="5" r="2.2"/>
+                        <circle cx="12" cy="12" r="2.2"/>
+                        <circle cx="12" cy="19" r="2.2"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="mobile-menu" id="mobileMenu" role="menu" aria-label="Mobile navigation">
+                <a href="index.html" class="menu-item">🏠 Home</a>
+                <a href="my-goals.html" class="menu-item">🎯 My Goals</a>
+                <a href="help.html" class="menu-item active">💖 Help Someone</a>
+                <div class="menu-divider"></div>
+                <button class="menu-item" data-create>✨ Start a SharedGoal</button>
+                <div class="menu-divider"></div>
+                <div class="menu-user-card" data-profile>
+                    <span class="user-avatar-circle">D</span>
+                    <div>
+                        <strong>Darpan Personal</strong>
+                        <small>darpanpersonal07@gmail.com</small>
+                    </div>
+                </div>
+                <button class="dropdown-signout-btn" data-login>Sign In</button>
+            </div>
+        </nav>
+    </div>
+    <main class="dashboard">
+        <header class="dash-head">
+            <div>
+                <span class="eyebrow">GIVE WHERE IT MATTERS</span>
+                <h1>Help Someone</h1>
+                <p>Support genuine causes and make a real difference, together.</p>
+            </div>
+            <button class="btn big full dash-main-cta" id="bottomHelpBtn">
+                + Create Help Request
+            </button>
+        </header>
+        <div class="stats">
+            <article>
+                <strong>24</strong>
+                <span>Verified community requests</span>
+            </article>
+            <article>
+                <strong>₹8.4L</strong>
+                <span>Contributed together</span>
+            </article>
+            <article>
+                <strong>312</strong>
+                <span>People helped across India</span>
+            </article>
+        </div>
+        <div class="help-tools">
+            <div class="tabs">
+                <button class="active" data-category="all">All Causes</button>
+                <button data-category="education">Education</button>
+                <button data-category="medical">Medical</button>
+                <button data-category="basic">Basic Needs</button>
+                <button data-category="assistance">Assistance</button>
+            </div>
+            <div class="search-input-wrap">
+                <input id="helpSearch" placeholder="Search causes or keywords...">
+            </div>
+        </div>
+        <section class="request-grid">
+            <article class="request" data-category="education">
+                <div class="request-img-wrap">
+                    <img src="assets/images/help-01-education.png" alt="Education support">
+                </div>
+                <div>
+                    <span class="eyebrow">✓ VERIFIED · EDUCATION</span>
+                    <h3>Help Riya continue her studies</h3>
+                    <p>
+                        Support school tuition fees, books, and essential STEM learning materials for the coming academic year.
+                    </p>
+                    <div class="bar">
+                        <i style="width: 68%"></i>
+                    </div>
+                    <div class="request-meta">
+                        <strong>₹34,000 of ₹50,000</strong>
+                        <span>18 days left</span>
+                    </div>
+                    <div class="request-actions">
+                        <button class="btn small" data-contribute="Help Riya continue her studies">
+                            Contribute
+                        </button>
+                        <button class="btn small ghost" data-share="Help Riya continue her studies">
+                            Share
+                        </button>
+                    </div>
+                </div>
+            </article>
+            <article class="request" data-category="medical">
+                <div class="request-img-wrap">
+                    <img src="assets/images/help-02-medical.png" alt="Medical support">
+                </div>
+                <div>
+                    <span class="eyebrow">✓ VERIFIED · MEDICAL</span>
+                    <h3>Support a family medical need</h3>
+                    <p>
+                        Help cover critical surgical treatment, post-operative medication and rehabilitation therapy expenses.
+                    </p>
+                    <div class="bar">
+                        <i style="width: 52%"></i>
+                    </div>
+                    <div class="request-meta">
+                        <strong>₹52,000 of ₹1,00,000</strong>
+                        <span>11 days left</span>
+                    </div>
+                    <div class="request-actions">
+                        <button class="btn small" data-contribute="Support a family medical need">
+                            Contribute
+                        </button>
+                        <button class="btn small ghost" data-share="Support a family medical need">
+                            Share
+                        </button>
+                    </div>
+                </div>
+            </article>
+            <article class="request" data-category="basic">
+                <div class="request-img-wrap">
+                    <img src="assets/images/help-04-basic.png" alt="Basic needs">
+                </div>
+                <div>
+                    <span class="eyebrow">✓ VERIFIED · BASIC NEEDS</span>
+                    <h3>Essential supplies for a family</h3>
+                    <p>
+                        Help provide nutritional pantry staples, clean water filtration, and household supplies for a displaced family.
+                    </p>
+                    <div class="bar">
+                        <i style="width: 81%"></i>
+                    </div>
+                    <div class="request-meta">
+                        <strong>₹24,300 of ₹30,000</strong>
+                        <span>7 days left</span>
+                    </div>
+                    <div class="request-actions">
+                        <button class="btn small" data-contribute="Essential supplies for a family">
+                            Contribute
+                        </button>
+                        <button class="btn small ghost" data-share="Essential supplies for a family">
+                            Share
+                        </button>
+                    </div>
+                </div>
+            </article>
+            <article class="request" data-category="assistance">
+                <div class="request-img-wrap">
+                    <img src="assets/images/help-03-assistance.png" alt="Assistance support">
+                </div>
+                <div>
+                    <span class="eyebrow">✓ VERIFIED · ASSISTANCE</span>
+                    <h3>Help rebuild after a difficult month</h3>
+                    <p>
+                        Community relief fund for overdue rent, utility restoration, and essential household rebuilding.
+                    </p>
+                    <div class="bar">
+                        <i style="width: 43%"></i>
+                    </div>
+                    <div class="request-meta">
+                        <strong>₹17,200 of ₹40,000</strong>
+                        <span>21 days left</span>
+                    </div>
+                    <div class="request-actions">
+                        <button class="btn small" data-contribute="Help rebuild after a difficult month">
+                            Contribute
+                        </button>
+                        <button class="btn small ghost" data-share="Help rebuild after a difficult month">
+                            Share
+                        </button>
+                    </div>
+                </div>
+            </article>
+            <article class="request" data-category="education">
+                <div class="request-img-wrap">
+                    <img src="assets/images/help-01-education.png" alt="Community library">
+                </div>
+                <div>
+                    <span class="eyebrow">✓ VERIFIED · EDUCATION</span>
+                    <h3>Community library & textbooks setup</h3>
+                    <p>
+                        Supplying curriculum reference books and safe study desks for 45 elementary students in Anand.
+                    </p>
+                    <div class="bar">
+                        <i style="width: 60%"></i>
+                    </div>
+                    <div class="request-meta">
+                        <strong>₹15,000 of ₹25,000</strong>
+                        <span>14 days left</span>
+                    </div>
+                    <div class="request-actions">
+                        <button class="btn small" data-contribute="Community library & textbooks setup">
+                            Contribute
+                        </button>
+                        <button class="btn small ghost" data-share="Community library & textbooks setup">
+                            Share
+                        </button>
+                    </div>
+                </div>
+            </article>
+            <article class="request" data-category="medical">
+                <div class="request-img-wrap">
+                    <img src="assets/images/help-02-medical.png" alt="Elder care">
+                </div>
+                <div>
+                    <span class="eyebrow">✓ VERIFIED · MEDICAL</span>
+                    <h3>Elderly post-surgery recovery care</h3>
+                    <p>
+                        Physiotherapy sessions, specialized mobility aid walker and 3-month medical support for Dadaji.
+                    </p>
+                    <div class="bar">
+                        <i style="width: 60%"></i>
+                    </div>
+                    <div class="request-meta">
+                        <strong>₹45,000 of ₹75,000</strong>
+                        <span>9 days left</span>
+                    </div>
+                    <div class="request-actions">
+                        <button class="btn small" data-contribute="Elderly post-surgery recovery care">
+                            Contribute
+                        </button>
+                        <button class="btn small ghost" data-share="Elderly post-surgery recovery care">
+                            Share
+                        </button>
+                    </div>
+                </div>
+            </article>
+        </section>
+        <section class="verify">
+            <span class="eyebrow">Trust matters</span>
+            <h2>Every public request goes through a verification process.</h2>
+            <div>
+                <article>
+                    <b>01</b>
+                    <h3>Submit</h3>
+                    <p>Requester shares the narrative along with verifiable documentation (bills, receipts, institutional verification).</p>
+                </article>
+                <article>
+                    <b>02</b>
+                    <h3>Review</h3>
+                    <p>Community administrators audit submitted proof and confirm authenticity before approving publication.</p>
+                </article>
+                <article>
+                    <b>03</b>
+                    <h3>Verify</h3>
+                    <p>Verified badge is granted, enabling the public to safely discover, share, and contribute together.</p>
+                </article>
+            </div>
+        </section>
+    </main>
+    <footer>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <img src="assets/images/logo.svg" alt="SharedGoal Logo" class="brand-logo-img" style="width: 36px; height: 36px;">
+            <div>
+                <strong>SharedGoal</strong>
+                <p>Give together. Make it meaningful.</p>
+            </div>
+        </div>
+        <span>People + purpose first. Money second.</span>
+        <small>© 2026 SharedGoal. All rights reserved.</small>
+    </footer>
+    <div class="overlay" id="contributionOverlay" role="dialog" aria-modal="true" aria-labelledby="contributionGoal">
+        <div class="modal small">
+            <button class="close" aria-label="Close modal">×</button>
+            <span class="eyebrow">Contribute</span>
+            <h2 id="contributionGoal">SharedGoal</h2>
+            <label>Amount (₹)</label>
+            <input id="contributionAmount" type="number" placeholder="₹ 1,000" value="1000">
+            <div class="quick">
+                <button data-amount="500">₹500</button>
+                <button data-amount="1000">₹1,000</button>
+                <button data-amount="2500">₹2,500</button>
+                <button data-amount="5000">₹5,000</button>
+            </div>
+            <label>Payment Method</label>
+            <div class="payments">
+                <button class="active">UPI</button>
+                <button>Razorpay</button>
+                <button>Cash</button>
+            </div>
+            <button class="btn full" id="makeContributionBtn" style="margin-top: 20px;">
+                Confirm & Pay
+            </button>
+        </div>
+    </div>
+    <div class="overlay" id="helpOverlay" role="dialog" aria-modal="true" aria-labelledby="helpModalTitle">
+        <div class="modal">
+            <button class="close" aria-label="Close modal">×</button>
+            <span class="eyebrow">Help Someone</span>
+            <h2 id="helpModalTitle">Create a Help Request</h2>
+            <p>Public requests require documentation review to verify genuine need before publication.</p>
+            <label>Title</label>
+            <input id="helpTitle" placeholder="e.g. Tuition assistance for 2nd year engineering">
+            <label>Category</label>
+            <select id="helpCategory">
+                <option value="education">Education</option>
+                <option value="medical">Medical</option>
+                <option value="basic">Basic Needs</option>
+                <option value="assistance">Assistance & Relief</option>
+            </select>
+            <label>Story & Situation</label>
+            <textarea id="helpStory" placeholder="Explain the circumstances, who will benefit, and what the funds will be used for..."></textarea>
+            <label>Target amount (₹)</label>
+            <input id="helpAmount" type="number" placeholder="₹ 50,000">
+            <label>Supporting Documents / Proof</label>
+            <div style="border: 1.5px dashed var(--line); padding: 16px; border-radius: var(--radius-md); background: #fff; text-align: center;">
+                <p style="font-size: 13px; margin-bottom: 8px; color: var(--text-secondary);">Hospital estimate, college fee slip, or utility statement</p>
+                <button type="button" class="btn small ghost" onclick="showToast('Document attached: proof_document.pdf');">Attach PDF / Photo</button>
+            </div>
+            <button class="btn full" id="submitHelpBtn" style="margin-top: 22px;">
+                Submit for Verification
+            </button>
+        </div>
+    </div>
+    <div class="overlay" id="contributionOverlay" role="dialog" aria-modal="true" aria-labelledby="contributionGoal">
+        <div class="modal small">
+            <button class="close" aria-label="Close modal">×</button>
+            <span class="eyebrow">Contribute</span>
+            <h2 id="contributionGoal">Help Someone</h2>
+            <label>Amount (₹)</label>
+            <input id="contributionAmount" type="number" placeholder="₹ 1,000" value="1000">
+            <div class="quick">
+                <button data-amount="500">₹500</button>
+                <button data-amount="1000">₹1,000</button>
+                <button data-amount="2500">₹2,500</button>
+                <button data-amount="5000">₹5,000</button>
+            </div>
+            <label>Payment Method</label>
+            <div class="payments">
+                <button class="active">UPI</button>
+                <button>Razorpay</button>
+                <button>Cash</button>
+            </div>
+            <button class="btn full" id="makeContributionBtn" style="margin-top: 20px;">
+                Confirm & Pay
+            </button>
+        </div>
+    </div>
+    <div class="overlay" id="notificationsOverlay" role="dialog" aria-modal="true" aria-labelledby="notificationsTitleHelp">
+        <div class="modal small">
+            <button class="close" aria-label="Close modal">×</button>
+            <span class="eyebrow">Updates</span>
+            <h2 id="notificationsTitleHelp">Notifications</h2>
+            <div class="notes">
+            </div>
+        </div>
+    </div>
+    <div class="overlay" id="profileOverlay" role="dialog" aria-modal="true" aria-labelledby="profileTitleHelp">
+        <div class="modal small">
+            <button class="close" aria-label="Close modal">×</button>
+            <span class="eyebrow">Account</span>
+            <h2 id="profileTitleHelp"></h2>
+            <p id="profileEmailHelp"></p>
+            <div class="stats" style="grid-template-columns: repeat(3, 1fr); margin: 20px 0;">
+                <article style="padding: 14px;">
+                    <strong id="profileCreatedHelp" style="font-size: 20px;">3</strong>
+                    <span>Created</span>
+                </article>
+                <article style="padding: 14px;">
+                    <strong id="profileJoinedHelp" style="font-size: 20px;">5</strong>
+                    <span>Joined</span>
+                </article>
+                <article style="padding: 14px;">
+                    <strong id="profileContributedHelp" style="font-size: 20px;">₹9.5k</strong>
+                    <span>Contributed</span>
+                </article>
+            </div>
+            <div class="rows">
+                <a href="my-goals.html" class="row-item" style="padding: 12px 0;">
+                    <span>View all My Goals</span>
+                    <span>→</span>
+                </a>
+                <a href="help.html" class="row-item" style="padding: 12px 0;">
+                    <span>Help Someone Requests</span>
+                    <span>→</span>
+                </a>
+            </div>
+            <button class="btn full ghost dropdown-signout-btn" style="margin-top: 18px;">
+                Sign Out
+            </button>
+        </div>
+    </div>
+    <div class="overlay" id="loginOverlay" role="dialog" aria-modal="true" aria-labelledby="loginTitleHelp">
+        <div class="modal small">
+            <button class="close" aria-label="Close modal">×</button>
+            <span class="eyebrow">Welcome back</span>
+            <h2 id="loginTitleHelp">Sign in to SharedGoal</h2>
+            <p>Manage your goals, track contributions and invite your circle.</p>
+            <button class="google-btn" style="margin-top: 20px;">
+                <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.66v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.15z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.26v3.15C3.25 21.36 7.34 24 12 24z"/><path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.26C.46 8.16 0 9.97 0 12s.46 3.84 1.26 5.42l4.02-3.15z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.25 2.64 1.26 6.58l4.02 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/></svg>
+                Continue with Google
+            </button>
+        </div>
+    </div>
+    <div class="overlay" id="createGoalOverlay" role="dialog" aria-modal="true" aria-labelledby="createGoalModalTitle">
+        <div class="modal">
+            <button class="close" aria-label="Close modal">×</button>
+            <div class="modal-head">
+                <span class="eyebrow">Create a SharedGoal</span>
+                <h2 id="createGoalModalTitle">Start something together</h2>
+                <div class="step-tracker">
+                    <span class="current-step-label" id="currentStepLabel">Step 1 of 7</span>
+                    <span>People + Purpose First</span>
+                </div>
+            </div>
+            <div class="goal-step active" data-step="1">
+                <label>What is this for?</label>
+                <div class="choice-grid" id="step1Choices">
+                    <button class="selected" data-value="Birthday">🎂 Birthday<small>Gifts, parties, celebrations</small></button>
+                    <button data-value="Wedding">💍 Wedding<small>Group registry & blessing gifts</small></button>
+                    <button data-value="Trip">✈️ Trip<small>Vacations, cabin rentals, travel</small></button>
+                    <button data-value="Farewell">🎉 Farewell<small>Colleagues, send-offs, memories</small></button>
+                    <button data-value="College Event">🎓 College Event<small>Fests, batch projects, reunions</small></button>
+                    <button data-value="Festival">🎁 Festival<small>Diwali, Christmas, communal feasts</small></button>
+                    <button data-value="Education">📚 Education<small>Tuition, books, supplies</small></button>
+                    <button data-value="Medical">🏥 Medical<small>Healthcare, treatments, medicines</small></button>
+                    <button data-value="Basic Needs">🏠 Basic Needs<small>Groceries, emergency support</small></button>
+                    <button data-value="Custom">✏️ Custom<small>Your unique occasion</small></button>
+                </div>
+                <div id="customCategoryWrap" style="display: none; margin-top: 12px;">
+                    <label>Specify Custom Occasion</label>
+                    <input id="customOccasionInput" placeholder="e.g. Marathon Fundraiser, Startup Launch">
+                </div>
+                <button class="btn full" id="step1Next" style="margin-top: 20px;">Continue</button>
+            </div>
+            <div class="goal-step" data-step="2">
+                <label>Goal name</label>
+                <input id="goalName" placeholder="e.g. Rahul's Birthday Gift">
+                <label>Description</label>
+                <textarea id="goalDesc" placeholder="Let's contribute together and surprise Rahul with his dream headphones..."></textarea>
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button class="btn ghost step-back-btn" style="flex: 1;">Back</button>
+                    <button class="btn" id="step2Next" style="flex: 2;">Continue</button>
+                </div>
+            </div>
+            <div class="goal-step" data-step="3">
+                <label>Target amount (₹)</label>
+                <input id="goalAmount" type="number" placeholder="₹ 25,000" min="100">
+                <label>Deadline</label>
+                <input id="goalDeadline" type="date">
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button class="btn ghost step-back-btn" style="flex: 1;">Back</button>
+                    <button class="btn" id="step3Next" style="flex: 2;">Continue</button>
+                </div>
+            </div>
+            <div class="goal-step" data-step="4">
+                <label>Contribution style</label>
+                <div class="choice-grid" id="styleChoices">
+                    <button class="selected" data-value="Equal split">
+                        Equal split
+                        <small>Even share calculated per member</small>
+                    </button>
+                    <button data-value="Custom amounts">
+                        Custom amounts
+                        <small>Members contribute as much as they want</small>
+                    </button>
+                </div>
+                <label style="margin-top: 16px;">Visibility</label>
+                <div class="choice-grid" id="visibilityChoices">
+                    <button class="selected" data-value="Private">
+                        Private
+                        <small>Only creator & invited members can access</small>
+                    </button>
+                    <button data-value="Public">
+                        Public
+                        <small>Discoverable by anyone on Help Someone</small>
+                    </button>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button class="btn ghost step-back-btn" style="flex: 1;">Back</button>
+                    <button class="btn" id="step4Next" style="flex: 2;">Continue</button>
+                </div>
+            </div>
+            <div class="goal-step" data-step="5">
+                <label>Creator Authentication</label>
+                <p>Sign in with Google before final creation so your goal stays secure and editable.</p>
+                <div class="google-auth-box">
+                    <div class="google-user-preview">
+                        <span class="user-avatar-circle"></span>
+                        <div>
+                            <strong></strong>
+                            <small style="display: block; color: var(--muted);"></small>
+                        </div>
+                    </div>
+                    <button class="google-btn" id="step5Next">
+                        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.66v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.15z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.26v3.15C3.25 21.36 7.34 24 12 24z"/><path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.26C.46 8.16 0 9.97 0 12s.46 3.84 1.26 5.42l4.02-3.15z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.25 2.64 1.26 6.58l4.02 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/></svg>
+                        Continue with Google
+                    </button>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn ghost step-back-btn" style="flex: 1;">Back</button>
+                </div>
+            </div>
+            <div class="goal-step" data-step="6">
+                <label>Invite people</label>
+                <p>After creating your Goal, you'll receive a secure link to share with your friends and family.</p>
+                <div class="copy-link-box">
+                    <span>Your invite link will be generated after you create the goal.</span>
+                    <button class="btn small ghost" id="copyInviteLinkBtn" disabled>Copy Link</button>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button class="btn ghost step-back-btn" style="flex: 1;">Back</button>
+                    <button class="btn" id="step6Next" style="flex: 2;">Review Goal</button>
+                </div>
+            </div>
+            <div class="goal-step" data-step="7">
+                <label>Review details</label>
+                <div class="review-summary">
+                    <div class="row">
+                        <div>
+                            <span>Occasion</span>
+                            <strong id="revOccasion">Birthday</strong>
+                        </div>
+                        <button type="button" class="edit-step-btn" data-goto-step="1" aria-label="Edit Occasion">Edit</button>
+                    </div>
+                    <div class="row">
+                        <div>
+                            <span>Goal name & Description</span>
+                            <strong id="revName">Aarav's Birthday Gift</strong>
+                            <p id="revDesc" class="rev-subtext">Let's get Aarav something he'll actually love.</p>
+                        </div>
+                        <button type="button" class="edit-step-btn" data-goto-step="2" aria-label="Edit Name and Description">Edit</button>
+                    </div>
+                    <div class="row">
+                        <div>
+                            <span>Target amount & Deadline</span>
+                            <div><strong id="revTarget">₹25,000</strong> · <span id="revDeadline">14 Oct 2026</span></div>
+                        </div>
+                        <button type="button" class="edit-step-btn" data-goto-step="3" aria-label="Edit Target and Deadline">Edit</button>
+                    </div>
+                    <div class="row">
+                        <div>
+                            <span>Style & Visibility</span>
+                            <div><strong id="revStyle">Equal split</strong> · <span id="revVisibility">Private</span></div>
+                        </div>
+                        <button type="button" class="edit-step-btn" data-goto-step="4" aria-label="Edit Style and Visibility">Edit</button>
+                    </div>
+                    <div class="row" id="revInvitesRow">
+                        <div>
+                            <span>Invitations</span>
+                            <strong id="revInvites">3 members invited</strong>
+                        </div>
+                        <button type="button" class="edit-step-btn" data-goto-step="6" aria-label="Edit Invitations">Edit</button>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button class="btn ghost step-back-btn" style="flex: 1;">Back</button>
+                    <button class="btn" id="finishGoalBtn" style="flex: 2;">Create SharedGoal</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="js/script.js"></script>
+</body>
+</html>

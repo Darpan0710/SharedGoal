@@ -1,0 +1,295 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: #f5f0e8;
+    color: #292824;
+}
+
+button,
+input {
+    font: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
+.login-page {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+}
+
+.login-box {
+    width: min(420px, 100%);
+    background: #fffdf9;
+    border: 1px solid #ddd5c9;
+    border-radius: 18px;
+    padding: 35px;
+}
+
+.login-box h1 {
+    font-family: Georgia, serif;
+    font-size: 34px;
+}
+
+.login-box p {
+    color: #77736b;
+    margin: 5px 0 25px;
+}
+
+label {
+    display: block;
+    font-size: 13px;
+    font-weight: bold;
+    margin: 15px 0 6px;
+}
+
+input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd5c9;
+    border-radius: 9px;
+    outline: none;
+}
+
+.login-box button,
+.request-right button,
+.actions button {
+    border: 0;
+    border-radius: 9px;
+    padding: 11px 18px;
+    font-weight: bold;
+}
+
+.login-box button {
+    width: 100%;
+    margin-top: 20px;
+    background: #245b58;
+    color: white;
+}
+
+.error {
+    background: #f8dddd;
+    color: #a33;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 13px;
+}
+
+.topbar {
+    background: #fffdf9;
+    border-bottom: 1px solid #ddd5c9;
+    padding: 20px 6%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+}
+
+.topbar strong {
+    font-family: Georgia, serif;
+    font-size: 22px;
+}
+
+.topbar span {
+    color: #77736b;
+    font-size: 12px;
+    margin-left: 10px;
+}
+
+.topbar a {
+    color: #245b58;
+    font-weight: bold;
+    margin-left: 15px;
+    text-decoration: none;
+}
+
+main {
+    max-width: 1100px;
+    margin: auto;
+    padding: 55px 6%;
+}
+
+.heading small,
+.request small {
+    color: #245b58;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+.heading h1 {
+    font-family: Georgia, serif;
+    font-size: 45px;
+    margin-top: 7px;
+}
+
+.requests {
+    display: grid;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+.request {
+    background: #fffdf9;
+    border: 1px solid #ddd5c9;
+    border-radius: 16px;
+    padding: 22px;
+    display: flex;
+    justify-content: space-between;
+    gap: 25px;
+}
+
+.request h2 {
+    font-family: Georgia, serif;
+    margin: 6px 0;
+}
+
+.request p {
+    color: #77736b;
+    max-width: 650px;
+    margin-bottom: 12px;
+}
+
+.request-right {
+    min-width: 130px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+.request-right button {
+    background: #245b58;
+    color: white;
+}
+
+.status {
+    padding: 6px 10px;
+    border-radius: 99px;
+    background: #eee8df;
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.verified {
+    background: #dceee5;
+    color: #32634d;
+}
+
+.rejected {
+    background: #f4dddd;
+    color: #9b4040;
+}
+
+.proof-required {
+    background: #f5e8d3;
+    color: #956524;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #19201d99;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.modal.show {
+    display: flex;
+}
+
+.modal-box {
+    position: relative;
+    width: min(550px, 100%);
+    background: #fffdf9;
+    border-radius: 18px;
+    padding: 30px;
+}
+
+.close {
+    position: absolute;
+    right: 18px;
+    top: 12px;
+    border: 0;
+    background: none;
+    font-size: 25px;
+}
+
+.modal-box h2 {
+    font-family: Georgia, serif;
+    margin: 8px 0 15px;
+}
+
+.modal-box > p {
+    color: #77736b;
+    line-height: 1.6;
+}
+
+.review-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 20px 0;
+    padding: 15px;
+    background: #eee8df;
+    border-radius: 10px;
+}
+
+.review-info span {
+    color: #77736b;
+}
+
+.actions {
+    display: flex;
+    gap: 8px;
+}
+
+.actions button {
+    flex: 1;
+    color: white;
+}
+
+.approve {
+    background: #4d8068;
+}
+
+.proof {
+    background: #b18143;
+}
+
+.reject {
+    background: #a94b4b;
+}
+
+@media (max-width: 650px) {
+
+    .topbar,
+    .request {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .request-right {
+        align-items: flex-start;
+        width: 100%;
+    }
+
+    .heading h1 {
+        font-size: 36px;
+    }
+
+    .actions {
+        flex-direction: column;
+    }
+}

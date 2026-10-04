@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Top Figure Gradient (Orange/Amber) -->
+    <linearGradient id="orangeHeadGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="60%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#fbbf24"/>
+    </linearGradient>
+    <linearGradient id="orangeBodyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ea580c"/>
+      <stop offset="45%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#fbbf24"/>
+    </linearGradient>
+
+    <!-- Bottom-Left Figure Gradient (Blue) -->
+    <linearGradient id="blueHeadGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+    <linearGradient id="blueBodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#60a5fa"/>
+      <stop offset="40%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#1e40af"/>
+    </linearGradient>
+
+    <!-- Bottom-Right Figure Gradient (Teal/Green) -->
+    <linearGradient id="greenHeadGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+    <linearGradient id="greenBodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6ee7b7"/>
+      <stop offset="40%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#047857"/>
+    </linearGradient>
+
+    <!-- Center Star Spark Gradient (Golden Sparkle) -->
+    <linearGradient id="starGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="50%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 1. Center Shining 4-Pointed Star Spark -->
+  <path d="M 256,188 C 256,230 240,246 198,246 C 240,246 256,262 256,304 C 256,262 272,246 314,246 C 272,246 256,230 256,188 Z" fill="url(#starGrad)"/>
+
+  <!-- 2. Top Figure: Head & Arch Body -->
+  <!-- Head -->
+  <circle cx="256" cy="118" r="44" fill="url(#orangeHeadGrad)"/>
+  <!-- Body Arch -->
+  <path d="M 148,260 C 158,212 198,168 256,168 C 314,168 354,212 364,260 C 330,224 294,204 256,204 C 218,204 182,224 148,260 Z" fill="url(#orangeBodyGrad)"/>
+
+  <!-- 3. Bottom-Left Figure: Head & Dynamic Swoosh Body -->
+  <!-- Head -->
+  <circle cx="112" cy="286" r="44" fill="url(#blueHeadGrad)"/>
+  <!-- Body -->
+  <path d="M 74,336 C 88,382 124,424 184,452 C 242,478 254,460 254,460 C 254,460 200,432 172,382 C 146,336 172,292 232,274 C 242,270 244,258 234,254 C 212,248 184,256 160,280 C 120,320 84,306 74,336 Z" fill="url(#blueBodyGrad)"/>
+
+  <!-- 4. Bottom-Right Figure: Head & Dynamic Swoosh Body -->
+  <!-- Head -->
+  <circle cx="400" cy="286" r="44" fill="url(#greenHeadGrad)"/>
+  <!-- Body -->
+  <path d="M 438,336 C 424,382 388,424 328,452 C 270,478 258,460 258,460 C 258,460 312,432 340,382 C 366,336 340,292 280,274 C 270,270 268,258 278,254 C 300,248 328,256 352,280 C 392,320 428,306 438,336 Z" fill="url(#greenBodyGrad)"/>
+</svg>

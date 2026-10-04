@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>My Goals — SharedGoal</title>
+    <meta name="description" content="Collaborative goal workspace. Keep every contribution, member and decision in one place.">
+    <link rel="icon" type="image/svg+xml" href="assets/images/logo.svg">
+    <link rel="apple-touch-icon" href="assets/images/logo.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="dashboard-page">
+    <div class="nav-wrap">
+        <nav class="nav">
+            <a class="logo" href="index.html">
+                <img src="assets/images/logo.svg" alt="SharedGoal Logo" class="brand-logo-img">
+                <span>SharedGoal<span class="logo-dot"></span></span>
+            </a>
+            <div class="nav-links">
+                <a href="index.html">Home</a>
+                <a class="active" href="my-goals.html">My Goals</a>
+                <a href="help.html">Help Someone</a>
+            </div>
+            <div class="nav-actions">
+                <button class="user-profile-btn" data-profile aria-label="User Profile">
+                    <span class="user-avatar-circle">D</span>
+                    <span class="name">Darpan Personal</span>
+                </button>
+                <button class="icon-btn notif-btn-header" id="notificationBtn" aria-label="Notifications">
+                    <span class="notif-badge"></span>
+                    🔔
+                </button>
+                <button class="btn nav-create-btn" data-create>+ Create Goal</button>
+                <button class="menu-btn" id="menuBtn" aria-label="Open navigation menu" aria-expanded="false" aria-controls="mobileMenu">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                        <circle cx="12" cy="5" r="2.2"/>
+                        <circle cx="12" cy="12" r="2.2"/>
+                        <circle cx="12" cy="19" r="2.2"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="mobile-menu" id="mobileMenu" role="menu" aria-label="Mobile navigation">
+                <a href="index.html" class="menu-item">🏠 Home</a>
+                <a href="my-goals.html" class="menu-item active">🎯 My Goals</a>
+                <a href="help.html" class="menu-item">💖 Help Someone</a>
+                <div class="menu-divider"></div>
+                <button class="menu-item" data-create>✨ Start a SharedGoal</button>
+                <div class="menu-divider"></div>
+                <div class="menu-user-card" data-profile>
+                    <span class="user-avatar-circle">D</span>
+                    <div>
+                        <strong>Darpan Personal</strong>
+                        <small>darpanpersonal07@gmail.com</small>
+                    </div>
+                </div>
+                <button class="dropdown-signout-btn" data-login>Sign In</button>
+            </div>
+        </nav>
+    </div>
+    <main class="dashboard">
+        <header class="dash-head">
+            <div>
+                <span class="eyebrow">YOUR SHARED MOMENTS</span>
+                <h1>My Goals</h1>
+                <p>
+                    Keep every contribution, person and decision in one place.
+                </p>
+            </div>
+            <button class="btn big full dash-main-cta" data-create>
+                + New Goal
+            </button>
+        </header>
+        <div id="goalsEmptyState" class="empty-state-card" style="display: none;">
+            <div class="empty-icon-circle">🎯</div>
+            <span class="eyebrow">Start your journey</span>
+            <h2>No goals yet</h2>
+            <p>You haven't created or joined any goals yet. Start something special with friends, family, or your team.</p>
+            <button class="btn big" data-create>Create Your First Goal</button>
+        </div>
+        <div id="goalsContent">
+            <div class="goal-tabs">
+                <button data-create>+ Start Another Goal</button>
+            </div>
+        <section class="main-goal">
+            <div class="main-goal-img-wrap">
+                <img id="mainGoalImg" src="assets/images/occasion-01-birthday.png" alt="Aarav's Birthday Goal">
+            </div>
+            <div class="goal-info">
+                <div class="goal-label" id="mainGoalOccasion">
+                    Loading…
+                </div>
+                <h2 id="mainGoalTitle">
+                    —
+                </h2>
+                <p id="mainGoalDesc">
+                </p>
+                <div class="amount">
+                    <strong id="mainGoalCollected">₹0</strong>
+                    <span id="mainGoalTarget"> of ₹0</span>
+                </div>
+                <div class="bar">
+                    <i id="mainGoalBar" style="width: 0%"></i>
+                </div>
+                <div class="meta">
+                    <span id="mainGoalPercent">0% collected</span>
+                    <span id="mainGoalDays">—</span>
+                    <span id="mainGoalMembers">0 members</span>
+                </div>
+                <div class="actions">
+                    <button class="btn" data-contribute>
+                        Contribute
+                    </button>
+                    <button class="btn ghost" id="copyGoalLinkBtn">
+                        Share Invite
+                    </button>
+                    <button class="btn ghost" id="completeGoalBtn">
+                        Complete Goal
+                    </button>
+                </div>
+            </div>
+        </section>
+        <div class="dash-grid">
+            <article class="card">
+                <div class="card-top">
+                    <h3>Your Contribution</h3>
+                    <span class="status-badge" id="yourContribBadge">—</span>
+                </div>
+                <strong class="big-number" id="yourContribAmount">₹0</strong>
+                <p id="yourContribDetail" style="margin-bottom: 16px; color: var(--text-secondary); font-size: 14px;">No contribution yet.</p>
+                <button class="text-link" id="addContribBtn" data-contribute="">
+                    + Add a contribution →
+                </button>
+            </article>
+            <article class="card">
+                <div class="card-top">
+                    <h3>Members</h3>
+                    <span class="status-badge" id="memberCountBadge">—</span>
+                </div>
+                <div class="avatars-preview" id="membersAvatarRow"></div>
+                <div class="members-list" id="membersListContainer">
+                    <p style="color: var(--text-secondary); font-size: 14px;">Loading members…</p>
+                </div>
+                <button class="text-link" id="inviteMoreMembersBtn">
+                    + Invite more members →
+                </button>
+            </article>
+            <article class="card">
+                <div class="card-top">
+                    <h3>Contributions</h3>
+                    <span class="status-badge confirmed" id="contribCountBadge">—</span>
+                </div>
+                <div class="rows" id="contribListContainer" style="max-height: 220px; overflow-y: auto;">
+                    <p style="color: var(--text-secondary); font-size: 14px;">Loading contributions…</p>
+                </div>
+            </article>
+            <article class="card">
+                <div class="card-top">
+                    <h3>Gift Ideas & Voting</h3>
+                    <span class="status-badge">Max 3 votes</span>
+                </div>
+                <p style="margin-bottom: 14px; font-size: 13.5px; color: var(--text-secondary);">
+                    Contributors suggest items (max 2). Group votes; creator breaks ties.
+                </p>
+                <div id="giftItemsList">
+                    <p style="color: var(--text-secondary); font-size: 14px;">No gift ideas yet.</p>
+                </div>
+                <button class="text-link" id="openSuggestGiftBtn" style="margin-top: 8px;">
+                    + Suggest a gift idea →
+                </button>
+            </article>
+            <article class="card">
+                <div class="card-top">
+                    <h3>Group Decision</h3>
+                    <span class="status-badge">60% Threshold</span>
+                </div>
+                <div id="groupDecisionContainer">
+                    <p style="color: var(--text-secondary); font-size: 14px;">No group decisions yet.</p>
+                </div>
+            </article>
+            <article class="card">
+                <div class="card-top">
+                    <h3>Activity Timeline</h3>
+                    <span class="status-badge">Live</span>
+                </div>
+                <div class="rows" id="activityTimelineContainer" style="max-height: 220px; overflow-y: auto;">
+                    <p style="color: var(--text-secondary); font-size: 14px;">Loading activity…</p>
+                </div>
+            </article>
+            <article class="card wide">
+                <div class="card-top">
+                    <h3>Spending & Goal Outcome</h3>
+                    <span class="status-badge">Reconciliation</span>
+                </div>
+                <div class="stats" style="margin-bottom: 16px;">
+                    <article>
+                        <strong id="spendingCollected">₹0</strong>
+                        <span>Total collected</span>
+                    </article>
+                    <article>
+                        <strong>—</strong>
+                        <span>Planned spending</span>
+                    </article>
+                    <article>
+                        <strong>—</strong>
+                        <span>Actual spent so far</span>
+                    </article>
+                </div>
+                <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 18px; line-height: 1.6;">
+                    When your goal concludes, record actual vendor receipts here. Transparent breakdowns ensure every contributor sees how funds were utilized.
+                </p>
+                <button class="btn ghost" onclick="openModal('#completeGoalOverlay');">
+                    Record Spending & Complete Goal
+                </button>
+            </article>
+        </div>
+        </div> 
+    </main>
+    <footer>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <img src="assets/images/logo.svg" alt="SharedGoal Logo" class="brand-logo-img" style="width: 36px; height: 36px;">
+            <div>
+                <strong>SharedGoal</strong>
+                <p>Give together. Make it meaningful.</p>
+            </div>
+        </div>
+        <span>People + purpose first. Money second.</span>
+        <small>© 2026 SharedGoal. All rights reserved.</small>
+    </footer>
+    <div class="overlay" id="createGoalOverlay" role="dialog" aria-modal="true" aria-labelledby="createGoalModalTitle">
+        <div class="modal">
+            <button class="close" aria-label="Close modal">×</button>
+            <div class="modal-head">
+                <span class="eyebrow">Create a SharedGoal</span>
+                <h2 id="createGoalModalTitle">Start something together</h2>
+                <div class="step-tracker">
+                    <span class="current-step-label" id="currentStepLabel">Step 1 of 7</span>
+                    <span>People + Purpose First</span>
+                </div>
+            </div>
+            <div class="goal-step active" data-step="1">
+                <label>What is this for?</label>
+                <div class="choice-grid" id="step1Choices">
+                    <button class="selected" data-value="Birthday">🎂 Birthday<small>Gifts, parties, celebrations</small></button>
+                    <button data-value="Wedding">💍 Wedding<small>Group registry & blessing gifts</small></button>
+                    <button data-value="Trip">✈️ Trip<small>Vacations, cabin rentals, travel</small></button>
+                    <button data-value="Farewell">🎉 Farewell<small>Colleagues, send-offs, memories</small></button>
+                    <button data-value="College Event">🎓 College Event<small>Fests, batch projects, reunions</small></button>
+                    <button data-value="Festival">🎁 Festival<small>Diwali, Christmas, communal feasts</small></button>
+                    <button data-value="Education">📚 Education<small>Tuition, books, supplies</small></button>
+                    <button data-value="Medical">🏥 Medical<small>Healthcare, treatments, medicines</small></button>
+                    <button data-value="Basic Needs">🏠 Basic Needs<small>Groceries, emergency support</small></button>
+                    <button data-value="Custom">✏️ Custom<small>Your unique occasion</small></button>
+                </div>
+                <div id="customCategoryWrap" style="display: none; margin-top: 12px;">
+                    <label>Specify Custom Occasion</label>
+                    <input id="customOccasionInput" placeholder="e.g. Marathon Fundraiser, Startup Launch">
+                </div>
+                <button class="btn full" id="step1Next" style="margin-top: 20px;">Continue</button>
+            </div>
+            <div class="goal-step" data-step="2">
+                <label>Goal name</label>
+                <input id="goalName" placeholder="e.g. Rahul's Birthday Gift">
+                <label>Description</label>
+                <textarea id="goalDesc" placeholder="Let's contribute together and surprise Rahul with his dream headphones..."></textarea>
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button class="btn ghost step-back-btn" style="flex: 1;">Back</button>
+                    <button class="btn" id="step2Next" style="flex: 2;">Continue</button>
+                </div>
+            </div>
+            <div class="goal-step" data-step="3">
+                <label>Target amount (₹)</label>
+                <input id="goalAmount" type="number" placeholder="₹ 25,000" min="100">
+                <label>Deadline</label>
+                <input id="goalDeadline" type="date">
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button class="btn ghost step-back-btn" style="flex: 1;">Back</button>
+                    <button class="btn" id="step3Next" style="flex: 2;">Continue</button>
+                </div>
+            </div>
+            <div class="goal-step" data-step="4">
+                <label>Contribution style</label>
+                <div class="choice-grid" id="styleChoices">
+                    <button class="selected" data-value="Equal split">
+                        Equal split
+                        <small>Even share calculated per member</small>
+                    </button>
+                    <button data-value="Custom amounts">
+                        Custom amounts
+                        <small>Members contribute as much as they want</small>
+                    </button>
+                </div>
+                <label style="margin-top: 16px;">Visibility</label>
+                <div class="choice-grid" id="visibilityChoices">
+                    <button class="selected" data-value="Private">
+                        Private
+                        <small>Only creator & invited members can access</small>
+                    </button>
+                    <button data-value="Public">
+                        Public
+                        <small>Discoverable by anyone on Help Someone</small>
+                    </button>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button class="btn ghost step-back-btn" style="flex: 1;">Back</button>
+                    <button class="btn" id="step4Next" style="flex: 2;">Continue</button>
+                </div>
+            </div>
+            <div class="goal-step" data-step="5">
+                <label>Creator Authentication</label>
+                <p>Sign in with Google before final creation so your goal stays secure and editable.</p>
+                <div class="google-auth-box">
+                    <div class="google-user-preview">
+                        <span class="user-avatar-circle"></span>
+                        <div>
+                            <strong></strong>
+                            <small style="display: block; color: var(--muted);"></small>
+                        </div>
+                    </div>
+                    <button class="google-btn" id="step5Next">
+                        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.66v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.15z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.26v3.15C3.25 21.36 7.34 24 12 24z"/><path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.26C.46 8.16 0 9.97 0 12s.46 3.84 1.26 5.42l4.02-3.15z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.25 2.64 1.26 6.58l4.02 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/></svg>
+                        Continue with Google
+                    </button>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn ghost step-back-btn" style="flex: 1;">Back</button>
+                </div>
+            </div>
+            <div class="goal-step" data-step="6">
+                <label>Invite people</label>
+                <p>Add friends or family via email. They'll receive an invitation to join.</p>
+                <div class="invite-row">
+                    <input id="inviteEmailInput" placeholder="friend@example.com" type="email">
+                    <button class="btn" id="addInviteeBtn">Add</button>
+                </div>
+                <div class="invite-tags" id="inviteesList"></div>
+                <div class="copy-link-box">
+                    <span>Your invite link will be generated after you create the goal.</span>
+                    <button class="btn small ghost" id="copyInviteLinkBtn" disabled>Copy Link</button>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button class="btn ghost step-back-btn" style="flex: 1;">Back</button>
+                    <button class="btn" id="step6Next" style="flex: 2;">Review Goal</button>
+                </div>
+            </div>
+            <div class="goal-step" data-step="7">
+                <label>Review details</label>
+                <div class="review-summary">
+                    <div class="row">
+                        <div>
+                            <span>Occasion</span>
+                            <strong id="revOccasion">Birthday</strong>
+                        </div>
+                        <button type="button" class="edit-step-btn" data-goto-step="1" aria-label="Edit Occasion">Edit</button>
+                    </div>
+                    <div class="row">
+                        <div>
+                            <span>Goal name & Description</span>
+                            <strong id="revName">Aarav's Birthday Gift</strong>
+                            <p id="revDesc" class="rev-subtext">Let's get Aarav something he'll actually love.</p>
+                        </div>
+                        <button type="button" class="edit-step-btn" data-goto-step="2" aria-label="Edit Name and Description">Edit</button>
+                    </div>
+                    <div class="row">
+                        <div>
+                            <span>Target amount & Deadline</span>
+                            <div><strong id="revTarget">₹25,000</strong> · <span id="revDeadline">14 Oct 2026</span></div>
+                        </div>
+                        <button type="button" class="edit-step-btn" data-goto-step="3" aria-label="Edit Target and Deadline">Edit</button>
+                    </div>
+                    <div class="row">
+                        <div>
+                            <span>Style & Visibility</span>
+                            <div><strong id="revStyle">Equal split</strong> · <span id="revVisibility">Private</span></div>
+                        </div>
+                        <button type="button" class="edit-step-btn" data-goto-step="4" aria-label="Edit Style and Visibility">Edit</button>
+                    </div>
+                    <div class="row" id="revInvitesRow">
+                        <div>
+                            <span>Invitations</span>
+                            <strong id="revInvites">3 members invited</strong>
+                        </div>
+                        <button type="button" class="edit-step-btn" data-goto-step="6" aria-label="Edit Invitations">Edit</button>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button class="btn ghost step-back-btn" style="flex: 1;">Back</button>
+                    <button class="btn" id="finishGoalBtn" style="flex: 2;">Create SharedGoal</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="overlay" id="completeGoalOverlay" role="dialog" aria-modal="true" aria-labelledby="completeGoalTitle">
+        <div class="modal small">
+            <button class="close" aria-label="Close modal">×</button>
+            <span class="eyebrow">Finalize Goal</span>
+            <h2 id="completeGoalTitle">Complete Goal</h2>
+            <p style="margin-bottom: 16px;">
+                You've collected <strong id="completeGoalCollected">—</strong>. Are you ready to mark this goal as complete?
+            </p>
+            <label>Total Vendor Expenditure (₹)</label>
+            <input type="number" value="18500" placeholder="₹ 18,500">
+            <label>Outcome Note for Contributors</label>
+            <textarea placeholder="e.g. Purchased the Sony WH-1000XM5 headphones! Will surprise Aarav on Saturday."></textarea>
+            <button class="btn full" id="confirmCompleteBtn" style="margin-top: 18px;">
+                Mark Goal as Completed
+            </button>
+        </div>
+    </div>
+    <div class="overlay" id="inviteMemberOverlay" role="dialog" aria-modal="true" aria-labelledby="inviteMemberTitle">
+        <div class="modal small">
+            <button class="close" aria-label="Close modal">×</button>
+            <h2 id="inviteMemberTitle">Share Goal</h2>
+            <p>Share this link with anyone you want to invite to this Goal.</p>
+            <div class="copy-link-box" style="margin-top: 16px;">
+                <span id="dashboardInviteLinkText">Generating link...</span>
+                <button class="btn small ghost" id="copyDashboardInviteLinkBtn" disabled>Copy Link</button>
+            </div>
+        </div>
+    </div>
+    <div class="overlay" id="contributionOverlay" role="dialog" aria-modal="true" aria-labelledby="contributionGoal">
+        <div class="modal small">
+            <button class="close" aria-label="Close modal">×</button>
+            <span class="eyebrow">Contribute</span>
+            <h2 id="contributionGoal">SharedGoal</h2>
+            <label>Amount (₹)</label>
+            <input id="contributionAmount" type="number" placeholder="₹ 1,000" value="1000">
+            <div class="quick">
+                <button data-amount="500">₹500</button>
+                <button data-amount="1000">₹1,000</button>
+                <button data-amount="2500">₹2,500</button>
+                <button data-amount="5000">₹5,000</button>
+            </div>
+            <label>Payment Method</label>
+            <div class="payments">
+                <button class="active">UPI</button>
+                <button>Razorpay</button>
+                <button>Cash</button>
+            </div>
+            <button class="btn full" id="makeContributionBtn" style="margin-top: 20px;">
+                Confirm & Pay
+            </button>
+        </div>
+    </div>
+    <div class="overlay" id="notificationsOverlay" role="dialog" aria-modal="true" aria-labelledby="notificationsTitleMyGoals">
+        <div class="modal small">
+            <button class="close" aria-label="Close modal">×</button>
+            <span class="eyebrow">Updates</span>
+            <h2 id="notificationsTitleMyGoals">Notifications</h2>
+            <div class="notes">
+            </div>
+        </div>
+    </div>
+    <div class="overlay" id="profileOverlay" role="dialog" aria-modal="true" aria-labelledby="profileTitleMyGoals">
+        <div class="modal small">
+            <button class="close" aria-label="Close modal">×</button>
+            <span class="eyebrow">Account</span>
+            <h2 id="profileTitleMyGoals"></h2>
+            <p id="profileEmailMyGoals"></p>
+            <div class="stats" style="grid-template-columns: repeat(3, 1fr); margin: 20px 0;">
+                <article style="padding: 14px;">
+                    <strong id="profileCreatedMyGoals" style="font-size: 20px;">3</strong>
+                    <span>Created</span>
+                </article>
+                <article style="padding: 14px;">
+                    <strong id="profileJoinedMyGoals" style="font-size: 20px;">5</strong>
+                    <span>Joined</span>
+                </article>
+                <article style="padding: 14px;">
+                    <strong id="profileContributedMyGoals" style="font-size: 20px;">₹9.5k</strong>
+                    <span>Contributed</span>
+                </article>
+            </div>
+            <div class="rows">
+                <a href="my-goals.html" class="row-item" style="padding: 12px 0;">
+                    <span>View all My Goals</span>
+                    <span>→</span>
+                </a>
+                <a href="help.html" class="row-item" style="padding: 12px 0;">
+                    <span>Help Someone Requests</span>
+                    <span>→</span>
+                </a>
+            </div>
+            <button class="btn full ghost dropdown-signout-btn" style="margin-top: 18px;">
+                Sign Out
+            </button>
+        </div>
+    </div>
+    <div class="overlay" id="loginOverlay" role="dialog" aria-modal="true" aria-labelledby="loginTitleMyGoals">
+        <div class="modal small">
+            <button class="close" aria-label="Close modal">×</button>
+            <span class="eyebrow">Welcome back</span>
+            <h2 id="loginTitleMyGoals">Sign in to SharedGoal</h2>
+            <p>Manage your goals, track contributions and invite your circle.</p>
+            <button class="google-btn" style="margin-top: 20px;">
+                <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.66v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.15z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.26v3.15C3.25 21.36 7.34 24 12 24z"/><path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.26C.46 8.16 0 9.97 0 12s.46 3.84 1.26 5.42l4.02-3.15z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.25 2.64 1.26 6.58l4.02 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/></svg>
+                Continue with Google
+            </button>
+        </div>
+    </div>
+    <div class="overlay" id="suggestGiftOverlay" role="dialog" aria-modal="true" aria-labelledby="suggestGiftTitle">
+        <div class="modal small">
+            <button class="close" aria-label="Close modal">×</button>
+            <span class="eyebrow">Gift Ideas</span>
+            <h2 id="suggestGiftTitle">Suggest a Gift</h2>
+            <p>Suggest an item for the group to vote on. (Limit: 2 suggestions per member)</p>
+            <form id="suggestGiftForm" style="margin-top: 14px;">
+                <label for="giftNameInput">Gift Name *</label>
+                <input id="giftNameInput" placeholder="e.g. Sony WH-1000XM5" required>
+                <label for="giftPriceInput">Estimated Price (₹) *</label>
+                <input id="giftPriceInput" type="number" min="50" placeholder="₹ 21,990" required>
+                <label for="giftLinkInput">Store or Product Link (Optional)</label>
+                <input id="giftLinkInput" type="url" placeholder="https://amazon.in/dp/...">
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="button" class="btn ghost close-suggest-btn" style="flex: 1;">Cancel</button>
+                    <button type="submit" class="btn" style="flex: 2;">Add Gift</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="js/script.js"></script>
+</body>
+</html>
