@@ -490,7 +490,9 @@ The project focuses on:
 Computer Science & Engineering  
 Indus University
 
-GitHub: [@Darpan0710](https://github.com/Darpan0710)
+GitHub:
+- [@Darpan0710](https://github.com/Darpan0710)
+- [@Preksha0716](https://github.com/Preksha0716)
 
 ---
 
