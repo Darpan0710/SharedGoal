@@ -111,6 +111,7 @@
                 <button data-occasion="Education">📚 Education</button>
                 <button data-occasion="Medical">🏥 Medical</button>
                 <button data-occasion="Basic Needs">🏠 Basic Needs</button>
+                <button data-occasion="Assistance">🤝 Assistance</button>
                 <button data-occasion="Custom">✏️ Custom</button>
             </div>
         </section>
@@ -178,7 +179,7 @@
                 <article>
                     <b>02</b>
                     <h3>Invite</h3>
-                    <p>Share a private link or email invites with the people you want involved.</p>
+                    <p>Share a private link with the people you want involved.</p>
                 </article>
                 <article>
                     <b>03</b>
@@ -295,25 +296,35 @@
                     <span>People + Purpose First</span>
                 </div>
             </div>
-            <div class="goal-step active" data-step="1">
-                <label>What is this for?</label>
-                <div class="choice-grid" id="step1Choices">
-                    <button class="selected" data-value="Birthday">🎂 Birthday<small>Gifts, parties, celebrations</small></button>
-                    <button data-value="Wedding">💍 Wedding<small>Group registry & blessing gifts</small></button>
-                    <button data-value="Trip">✈️ Trip<small>Vacations, cabin rentals, travel</small></button>
-                    <button data-value="Farewell">🎉 Farewell<small>Colleagues, send-offs, memories</small></button>
-                    <button data-value="College Event">🎓 College Event<small>Fests, batch projects, reunions</small></button>
-                    <button data-value="Festival">🎁 Festival<small>Diwali, Christmas, communal feasts</small></button>
-                    <button data-value="Education">📚 Education<small>Tuition, books, supplies</small></button>
-                    <button data-value="Medical">🏥 Medical<small>Healthcare, treatments, medicines</small></button>
-                    <button data-value="Basic Needs">🏠 Basic Needs<small>Groceries, emergency support</small></button>
-                    <button data-value="Custom">✏️ Custom<small>Your unique occasion</small></button>
+            <div class="goal-step active" data-step="0">
+                <label>What would you like to create?</label>
+                <div class="choice-grid" id="creationTypeChoices">
+                    <button class="selected" type="button" data-creation-type="PERSONAL_GOAL">
+                        Personal Goal
+                        <small>Private by default — only you and invited members can see and access this goal.</small>
+                    </button>
+                    <button type="button" data-creation-type="HELP_SOMEONE">
+                        Help Someone
+                        <small>Public after verification — once approved, everyone can see and contribute to this request.</small>
+                    </button>
                 </div>
+                <button class="btn full" id="creationTypeNext" style="margin-top: 20px;">Continue</button>
+            </div>
+            <div class="goal-step" data-step="1">
+                <label id="categoryStepTitle">Choose a Personal Goal occasion</label>
+                <div class="choice-grid" id="step1Choices"></div>
                 <div id="customCategoryWrap" style="display: none; margin-top: 12px;">
                     <label>Specify Custom Occasion</label>
                     <input id="customOccasionInput" placeholder="e.g. Marathon Fundraiser, Startup Launch">
                 </div>
-                <button class="btn full" id="step1Next" style="margin-top: 20px;">Continue</button>
+                <div id="customHelpCategoryWrap" style="display: none; margin-top: 12px;">
+                    <label>Specify Custom Help Category</label>
+                    <input id="customHelpCategoryInput" placeholder="e.g. Emergency housing support">
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button class="btn ghost step-back-btn" style="flex: 1;">Back</button>
+                    <button class="btn" id="step1Next" style="flex: 2;">Continue</button>
+                </div>
             </div>
             <div class="goal-step" data-step="2">
                 <label>Goal name</label>
@@ -347,17 +358,7 @@
                         <small>Members contribute as much as they want</small>
                     </button>
                 </div>
-                <label style="margin-top: 16px;">Visibility</label>
-                <div class="choice-grid" id="visibilityChoices">
-                    <button class="selected" data-value="Private">
-                        Private
-                        <small>Only creator & invited members can access</small>
-                    </button>
-                    <button data-value="Public">
-                        Public
-                        <small>Discoverable by anyone on Help Someone</small>
-                    </button>
-                </div>
+                <p style="margin-top: 16px; color: var(--text-secondary); font-size: 14px;">Only you and invited members can access this goal.</p>
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
                     <button class="btn ghost step-back-btn" style="flex: 1;">Back</button>
                     <button class="btn" id="step4Next" style="flex: 2;">Continue</button>
@@ -384,18 +385,6 @@
                 </div>
             </div>
             <div class="goal-step" data-step="6">
-                <label>Invite people</label>
-                <p>After creating your Goal, you'll receive a secure link to share with your friends and family.</p>
-                <div class="copy-link-box">
-                    <span>Your invite link will be generated after you create the goal.</span>
-                    <button class="btn small ghost" id="copyInviteLinkBtn" disabled>Copy Link</button>
-                </div>
-                <div style="display: flex; gap: 10px; margin-top: 20px;">
-                    <button class="btn ghost step-back-btn" style="flex: 1;">Back</button>
-                    <button class="btn" id="step6Next" style="flex: 2;">Review Goal</button>
-                </div>
-            </div>
-            <div class="goal-step" data-step="7">
                 <label>Review details</label>
                 <div class="review-summary">
                     <div class="row">
@@ -422,17 +411,10 @@
                     </div>
                     <div class="row">
                         <div>
-                            <span>Style & Visibility</span>
+                            <span>Style & Access</span>
                             <div><strong id="revStyle">Equal split</strong> · <span id="revVisibility">Private</span></div>
                         </div>
-                        <button type="button" class="edit-step-btn" data-goto-step="4" aria-label="Edit Style and Visibility">Edit</button>
-                    </div>
-                    <div class="row" id="revInvitesRow">
-                        <div>
-                            <span>Invitations</span>
-                            <strong id="revInvites">3 members invited</strong>
-                        </div>
-                        <button type="button" class="edit-step-btn" data-goto-step="6" aria-label="Edit Invitations">Edit</button>
+                        <button type="button" class="edit-step-btn" data-goto-step="4" aria-label="Edit contribution style">Edit</button>
                     </div>
                 </div>
                 <div style="display: flex; gap: 10px; margin-top: 20px;">

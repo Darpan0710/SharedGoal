@@ -869,6 +869,101 @@ footer small {
     gap: 20px;
     margin-bottom: 24px;
 }
+.help-cta-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.help-cta-actions .dash-main-cta {
+    width: auto;
+    margin-top: 0;
+}
+@media (max-width: 950px) {
+    .help-page-head {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px;
+    }
+    .help-page-head .help-cta-actions {
+        justify-content: flex-start;
+    }
+    .help-page-head .help-cta-actions > .dash-main-cta {
+        width: 100%;
+    }
+}
+.my-help-requests {
+    margin-bottom: 20px;
+    scroll-margin-top: 24px;
+}
+.my-help-requests #myHelpRequestsList {
+    max-height: none;
+    overflow-y: visible;
+    padding-right: 4px;
+}
+.my-help-requests #myHelpRequestsList.has-overflow {
+    max-height: 320px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+.my-help-requests #myHelpRequestsList > .my-help-request-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 100px;
+    box-sizing: border-box;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+}
+.my-help-requests #myHelpRequestsList > .my-help-request-item:last-child {
+    border-bottom: 0;
+}
+.my-help-request-details {
+    display: grid;
+    min-width: 0;
+    gap: 6px;
+}
+.my-help-request-title {
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+.my-help-request-summary {
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+.my-help-request-status {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+}
+.my-help-request-status .status-badge {
+    max-width: 100%;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+.my-help-request-date {
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.4;
+    text-align: right;
+}
+.my-help-request-proof {
+    width: fit-content;
+    max-width: 100%;
+    color: var(--teal);
+    font-size: 13px;
+    overflow-wrap: anywhere;
+}
 .dash-head h1 {
     font-family: var(--font-serif);
     font-weight: 600;
@@ -1493,6 +1588,21 @@ footer small {
     border-color: var(--teal);
     box-shadow: 0 0 0 3px rgba(121, 13, 22, 0.14);
 }
+.modal .field-invalid {
+    border-color: var(--coral);
+    box-shadow: 0 0 0 1px var(--coral);
+}
+.modal .field-invalid:focus {
+    border-color: var(--coral);
+    box-shadow: 0 0 0 3px rgba(121, 13, 22, 0.14);
+}
+.field-validation-error {
+    display: block;
+    margin-top: 4px;
+    color: var(--coral);
+    font-size: 12px;
+    line-height: 1.4;
+}
 .modal textarea {
     min-height: 90px;
     resize: vertical;
@@ -1968,6 +2078,16 @@ footer small {
         gap: 14px;
         margin-bottom: 20px;
     }
+    .help-cta-actions {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .help-cta-actions > .btn {
+        width: 100%;
+        justify-content: center;
+        margin-top: 0;
+    }
     .dash-head .eyebrow {
         font-size: 11px;
         letter-spacing: 1.4px;
@@ -2183,6 +2303,23 @@ footer small {
     }
 }
 @media (max-width: 560px) {
+    .my-help-requests #myHelpRequestsList > .my-help-request-item {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 9px;
+        padding: 12px 0;
+    }
+    .my-help-request-details,
+    .my-help-request-status {
+        width: 100%;
+    }
+    .my-help-request-status {
+        align-items: flex-start;
+        gap: 6px;
+    }
+    .my-help-request-date {
+        text-align: left;
+    }
     .overlay {
         padding: 10px;
     }
@@ -2226,6 +2363,15 @@ footer small {
     .review-summary .row .edit-step-btn {
         align-self: flex-end;
         margin-top: -20px;
+    }
+}
+@media (max-width: 380px) {
+    .nav {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+    .btn.nav-create-btn {
+        display: none;
     }
 }
 @keyframes pageEntrance {

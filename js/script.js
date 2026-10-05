@@ -6,6 +6,11 @@ const SUPABASE_ANON_KEY = 'sb_publishable_z2W6GCRu51hFfT08w17NOA_JeoVP8HS';
 window.sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
+let resolveAuthReady;
+const authReady = new Promise(resolve => {
+    resolveAuthReady = resolve;
+});
+const PENDING_HELP_CONTRIBUTION_KEY = 'pendingHelpContribution';
 
 // Global notification toast
 function showToast(message) {
@@ -22,6 +27,47 @@ function showToast(message) {
     toast.classList.add('show');
     clearTimeout(toast._timeout);
     toast._timeout = setTimeout(() => toast.classList.remove('show'), 2800);
+}
+
+function setFieldValidation(field, isValid, message) {
+    if (!field) return isValid;
+
+    const errorId = `${field.id}ValidationError`;
+    let error = document.getElementById(errorId);
+    if (!isValid) {
+        field.classList.add('field-invalid');
+        field.setAttribute('aria-invalid', 'true');
+        if (!error) {
+            error = document.createElement('small');
+            error.id = errorId;
+            error.className = 'field-validation-error';
+            error.setAttribute('role', 'alert');
+            field.insertAdjacentElement('afterend', error);
+        }
+        error.textContent = message;
+        field.setAttribute('aria-describedby', errorId);
+        return false;
+    }
+
+    field.classList.remove('field-invalid');
+    field.removeAttribute('aria-invalid');
+    if (field.getAttribute('aria-describedby') === errorId) {
+        field.removeAttribute('aria-describedby');
+    }
+    error?.remove();
+    return true;
+}
+
+function bindFieldValidation(field, isValid, message) {
+    if (!field) return;
+    const validate = () => setFieldValidation(field, isValid(field), message);
+    field.addEventListener('input', validate);
+    field.addEventListener('change', validate);
+}
+
+function localDateValue(date = new Date()) {
+    const offset = date.getTimezoneOffset() * 60000;
+    return new Date(date.getTime() - offset).toISOString().slice(0, 10);
 }
 
 // Modal management with focus trapping and restoration
@@ -52,6 +98,9 @@ const showModal = (id, triggerElement) => {
 };
 
 const closeModal = () => {
+    if ($('#loginOverlay')?.classList.contains('show')) {
+        sessionStorage.removeItem(PENDING_HELP_CONTRIBUTION_KEY);
+    }
     $$('.overlay.show').forEach(overlay => {
         overlay.classList.remove('show');
         overlay.setAttribute('aria-hidden', 'true');
@@ -151,19 +200,182 @@ $$('input[type="date"]').forEach(input => {
     input.min = new Date().toISOString().split('T')[0];
 });
 
-// Create Goal Wizard (7-step flow)
+// Shared creation wizard: entry choice, category choice, then the existing goal steps.
 let currentStep = 1;
 let editingFromReview = false;
+let entryContext = 'HOME';
+let creationType = 'PERSONAL_GOAL';
+let selectedCreationCategory = 'Birthday';
+let selectedHelpCategory = 'assistance';
+let selectedHelpProofFile = null;
+let selectedHelpProofPath = null;
 
+const PERSONAL_GOAL_OPTIONS = [
+    { value: 'Birthday', label: '🎂 Birthday', detail: 'Gifts, parties, celebrations' },
+    { value: 'Wedding', label: '💍 Wedding', detail: 'Group registry & blessing gifts' },
+    { value: 'Trip', label: '✈️ Trip', detail: 'Vacations, cabin rentals, travel' },
+    { value: 'Farewell', label: '🎉 Farewell', detail: 'Colleagues, send-offs, memories' },
+    { value: 'College Event', label: '🎓 College Event', detail: 'Fests, batch projects, reunions' },
+    { value: 'Festival', label: '🎁 Festival', detail: 'Diwali, Christmas, communal feasts' },
+    { value: 'Custom', label: '✏️ Custom', detail: 'Your unique occasion' }
+];
+const HELP_REQUEST_OPTIONS = [
+    { value: 'education', label: '📚 Education', detail: 'Tuition, books, supplies' },
+    { value: 'medical', label: '🏥 Medical', detail: 'Healthcare, treatments, medicines' },
+    { value: 'basic', label: '🏠 Basic Needs', detail: 'Groceries, emergency support' },
+    { value: 'assistance', label: '🤝 Assistance', detail: 'Urgent support and relief' },
+    { value: 'custom', label: '✏️ Custom', detail: 'Describe a help category' }
+];
+const HELP_CATEGORY_LABELS = {
+    education: 'Education',
+    medical: 'Medical',
+    basic: 'Basic Needs',
+    assistance: 'Assistance'
+};
+const HELP_PROOF_BUCKET = 'help-request-proofs';
+const HELP_PROOF_MAX_SIZE = 10 * 1024 * 1024;
+let proofReferenceSchemaAvailable = null;
 const goalData = {
     occasion: 'Birthday',
+    customOccasion: '',
+    isCustomOccasion: false,
+    creationType: 'PERSONAL_GOAL',
+    entryContext: 'HOME',
     name: '',
     description: '',
     target: 0,
     deadline: '',
     style: 'Equal split',
-    visibility: 'Private'
+    visibility: 'Private',
+    helpCategory: 'assistance'
 };
+let activeGoalId = null;
+let currentContributeSplitStyle = 'Custom amounts';
+let currentContributeFixedAmount = null;
+let currentContributeRemaining = null;
+
+function getGoalContributionStyle(goal) {
+    const storedStyle = goal.rawGoal.contribution_style || goal.rawGoal.split_type;
+    if (storedStyle) return storedStyle;
+    try {
+        return localStorage.getItem(`sharedGoalContributionStyle:${goal.goalId}`) || 'Equal split';
+    } catch (error) {
+        console.warn('Unable to read this browser saved contribution style:', error);
+        return 'Equal split';
+    }
+}
+
+function configureGoalContribution(goal) {
+    const input = $('#contributionAmount');
+    if (!input) return;
+
+    const style = getGoalContributionStyle(goal);
+    const remaining = Math.max(0, Number(goal.target) - Number(goal.collected));
+    currentContributeSplitStyle = style;
+    currentContributeRemaining = remaining;
+
+    $$('.quick button').forEach(button => {
+        button.disabled = style === 'Equal split';
+    });
+
+    if (style === 'Equal split') {
+        const assigned = calculateEqualSplit(goal.target, goal.members);
+        currentContributeFixedAmount = Math.min(assigned, remaining);
+        input.value = currentContributeFixedAmount.toFixed(2).replace(/\.00$/, '');
+        input.readOnly = true;
+        input.removeAttribute('max');
+    } else {
+        currentContributeFixedAmount = null;
+        input.value = '';
+        input.readOnly = false;
+        input.min = '0.01';
+        input.max = String(remaining);
+        $$('.quick button').forEach(button => {
+            button.disabled = Number(button.dataset.amount) > remaining;
+        });
+    }
+}
+
+function calculateEqualSplit(targetAmount, memberCount) {
+    const target = Number(targetAmount) || 0;
+    const members = Number(memberCount) > 0 ? Number(memberCount) : 1;
+    return Number((target / members).toFixed(2));
+}
+
+function calculateCustomSplit(targetAmount, allocations) {
+    const target = Number(targetAmount) || 0;
+    const totalAllocated = (allocations || []).reduce((sum, value) => sum + (Number(value) || 0), 0);
+    return {
+        totalAllocated,
+        remaining: Number((target - totalAllocated).toFixed(2)),
+        exceedsTarget: totalAllocated > target
+    };
+}
+
+window.calculateEqualSplit = calculateEqualSplit;
+window.calculateCustomSplit = calculateCustomSplit;
+
+function getPageEntryContext() {
+    const pageName = window.location.pathname.split('/').pop();
+    if (pageName === 'my-goals.html') return 'MY_GOALS';
+    if (pageName === 'help.html') return 'HELP_SOMEONE';
+    return 'HOME';
+}
+
+function getHelpCategoryLabel(category = selectedHelpCategory) {
+    return HELP_CATEGORY_LABELS[category] || category;
+}
+
+function renderCreationCategories() {
+    const choices = $('#step1Choices');
+    const title = $('#categoryStepTitle');
+    const options = creationType === 'HELP_SOMEONE' ? HELP_REQUEST_OPTIONS : PERSONAL_GOAL_OPTIONS;
+    if (!choices) return;
+
+    const selectedValue = creationType === 'HELP_SOMEONE'
+        ? (HELP_REQUEST_OPTIONS.some(option => option.value === selectedCreationCategory) ? selectedCreationCategory : 'education')
+        : (PERSONAL_GOAL_OPTIONS.some(option => option.value === selectedCreationCategory) ? selectedCreationCategory : 'Birthday');
+    selectedCreationCategory = selectedValue;
+    if (title) {
+        title.textContent = creationType === 'HELP_SOMEONE'
+            ? 'Choose a Help Someone category'
+            : 'Choose a Personal Goal occasion';
+    }
+
+    choices.innerHTML = options.map(option => `
+        <button type="button" class="${option.value === selectedCreationCategory ? 'selected' : ''}" data-value="${option.value}">
+            ${option.label}<small>${option.detail}</small>
+        </button>
+    `).join('');
+
+    const personalCustom = $('#customCategoryWrap');
+    const helpCustom = $('#customHelpCategoryWrap');
+    if (personalCustom) personalCustom.style.display = creationType === 'PERSONAL_GOAL' && selectedValue === 'Custom' ? 'block' : 'none';
+    if (helpCustom) helpCustom.style.display = creationType === 'HELP_SOMEONE' && selectedValue === 'custom' ? 'block' : 'none';
+}
+
+function updateHelpCategoryLabel() {
+    const label = $('#selectedHelpCategoryLabel');
+    if (label) label.textContent = `Category: ${getHelpCategoryLabel()}`;
+}
+
+function openHelpRequestFlow(triggerEl) {
+    const helpOverlay = $('#helpOverlay');
+    updateHelpCategoryLabel();
+    if ($('#helpRequestStepLabel')) $('#helpRequestStepLabel').textContent = 'Step 3 of 3';
+    if (!helpOverlay) {
+        sessionStorage.setItem('pendingHelpRequestSelection', JSON.stringify({
+            category: selectedHelpCategory,
+            entryContext,
+            selectedCreationCategory,
+            customCategory: selectedCreationCategory === 'custom' ? selectedHelpCategory : ''
+        }));
+        window.location.href = 'help.html';
+        return;
+    }
+    closeModal();
+    openModal('#helpOverlay', triggerEl || $('#createHelpBtn'));
+}
 
 function goToStep(n) {
     currentStep = n;
@@ -172,9 +384,13 @@ function goToStep(n) {
     });
 
     const stepLabel = $('#currentStepLabel');
-    if (stepLabel) stepLabel.textContent = `Step ${n} of 7`;
+    if (stepLabel) {
+        const stepNumber = n === 0 ? 1 : n + 1;
+        const totalSteps = creationType === 'HELP_SOMEONE' ? 3 : 7;
+        stepLabel.textContent = `Step ${stepNumber} of ${totalSteps}`;
+    }
 
-    if (n === 7) {
+    if (n === 6) {
         editingFromReview = false;
         updateReviewScreen();
     }
@@ -188,9 +404,6 @@ function updateReviewScreen() {
     const revDeadline = $('#revDeadline');
     const revStyle = $('#revStyle');
     const revVisibility = $('#revVisibility');
-    const revInvites = $('#revInvites');
-    const revInvitesRow = $('#revInvitesRow');
-
     if (revOccasion) revOccasion.textContent = goalData.occasion;
     if (revName) revName.textContent = goalData.name || 'Untitled Goal';
     if (revDesc) revDesc.textContent = goalData.description || 'No description provided.';
@@ -206,15 +419,8 @@ function updateReviewScreen() {
     }
 
     if (revStyle) revStyle.textContent = goalData.style;
-    if (revVisibility) revVisibility.textContent = goalData.visibility;
+    if (revVisibility) revVisibility.textContent = 'Private';
 
-    if (revInvitesRow) {
-        const isPublic = goalData.visibility === 'Public';
-        revInvitesRow.style.display = isPublic ? 'none' : 'flex';
-        if (revInvites && !isPublic) {
-            revInvites.textContent = 'Share link will be generated';
-        }
-    }
 }
 
 $$('.edit-step-btn').forEach(btn => {
@@ -227,90 +433,287 @@ $$('.edit-step-btn').forEach(btn => {
     };
 });
 
-function startCreateGoal(occasion, triggerEl) {
+function startCreationFlow(context, triggerEl, presetCategory = '') {
     editingFromReview = false;
-    if (occasion) {
-        goalData.occasion = occasion;
-        $$('#step1Choices button').forEach(btn => {
-            btn.classList.toggle('selected', btn.dataset.value === occasion);
-        });
-        const customWrap = $('#customCategoryWrap');
-        if (customWrap) customWrap.style.display = occasion === 'Custom' ? 'block' : 'none';
-    }
-    goToStep(1);
+    entryContext = context;
+    $$('.field-invalid').forEach(field => setFieldValidation(field, true, ''));
+    const helpCategoryPresets = {
+        education: 'education',
+        medical: 'medical',
+        'basic needs': 'basic',
+        assistance: 'assistance'
+    };
+    const normalizedPreset = presetCategory.trim().toLowerCase();
+    const categoryPreset = normalizedPreset === 'custom'
+        ? ''
+        : helpCategoryPresets[normalizedPreset] || presetCategory;
+    const presetIsHelpCategory = HELP_REQUEST_OPTIONS.some(option => option.value === categoryPreset);
+    creationType = context === 'HELP_SOMEONE' || presetIsHelpCategory ? 'HELP_SOMEONE' : 'PERSONAL_GOAL';
+    goalData.creationType = creationType;
+    goalData.entryContext = entryContext;
+    goalData.customOccasion = '';
+    goalData.isCustomOccasion = false;
+    goalData.helpCategory = 'assistance';
+    selectedHelpProofFile = null;
+    selectedHelpProofPath = null;
+    if ($('#helpProofFile')) $('#helpProofFile').value = '';
+    if ($('#helpProofFileName')) $('#helpProofFileName').textContent = '';
+    if ($('#customOccasionInput')) $('#customOccasionInput').value = '';
+    if ($('#customHelpCategoryInput')) $('#customHelpCategoryInput').value = '';
+    selectedCreationCategory = categoryPreset || (creationType === 'HELP_SOMEONE' ? 'education' : 'Birthday');
+    renderCreationCategories();
+    $$('#creationTypeChoices button').forEach(btn => {
+        btn.classList.toggle('selected', btn.dataset.creationType === creationType);
+    });
+    goToStep(context === 'HOME' && !categoryPreset ? 0 : 1);
     openModal('#createGoalOverlay', triggerEl);
 }
 
-$$('[data-create], .chips button').forEach(btn => {
-    btn.onclick = () => startCreateGoal(btn.dataset.occasion || '', btn);
-});
-
-// Step 1: Occasion selection
-$$('#step1Choices button').forEach(btn => {
+$$('[data-create]').forEach(btn => {
     btn.onclick = () => {
-        $$('#step1Choices button').forEach(b => b.classList.remove('selected'));
-        btn.classList.add('selected');
-        goalData.occasion = btn.dataset.value;
-
-        const customWrap = $('#customCategoryWrap');
-        if (customWrap) {
-            customWrap.style.display = goalData.occasion === 'Custom' ? 'block' : 'none';
-        }
+        const context = getPageEntryContext();
+        startCreationFlow(context, btn, btn.dataset.occasion || '');
     };
 });
 
+$$('.chips button').forEach(btn => {
+    btn.onclick = () => startCreationFlow('HOME', btn, btn.dataset.occasion || '');
+});
+
+$('#createHelpBtn')?.addEventListener('click', event => {
+    startCreationFlow('HELP_SOMEONE', event.currentTarget);
+});
+$('#bottomHelpBtn')?.addEventListener('click', event => {
+    startCreationFlow('HELP_SOMEONE', event.currentTarget);
+});
+
+bindFieldValidation($('#customOccasionInput'), field => Boolean(field.value.trim()), 'Enter a custom occasion.');
+bindFieldValidation($('#customHelpCategoryInput'), field => Boolean(field.value.trim()), 'Enter a custom help category.');
+bindFieldValidation($('#goalName'), field => Boolean(field.value.trim()), 'Enter a name for your goal.');
+bindFieldValidation($('#goalAmount'), field => Number.isFinite(Number(field.value)) && Number(field.value) >= 100, 'Enter a target amount of at least ₹100.');
+bindFieldValidation($('#goalDeadline'), field => Boolean(field.value) && field.value >= localDateValue(), 'Choose today or a future deadline.');
+bindFieldValidation($('#helpTitle'), field => Boolean(field.value.trim()), 'Enter a title for your request.');
+bindFieldValidation($('#helpStory'), field => Boolean(field.value.trim()), 'Describe the situation and how the funds will be used.');
+bindFieldValidation($('#helpAmount'), field => Number.isFinite(Number(field.value)) && Number(field.value) >= 500, 'Enter a target amount of at least ₹500.');
+
+$('#backToHelpCategoriesBtn')?.addEventListener('click', () => {
+    closeModal();
+    creationType = 'HELP_SOMEONE';
+    goalData.creationType = creationType;
+    goalData.entryContext = entryContext;
+    selectedCreationCategory = HELP_REQUEST_OPTIONS.some(option => option.value === selectedHelpCategory)
+        ? selectedHelpCategory
+        : 'custom';
+    if (selectedCreationCategory === 'custom' && $('#customHelpCategoryInput')) {
+        $('#customHelpCategoryInput').value = selectedHelpCategory;
+        setFieldValidation($('#customHelpCategoryInput'), Boolean(selectedHelpCategory.trim()), 'Enter a custom help category.');
+    }
+    renderCreationCategories();
+    openModal('#createGoalOverlay', $('#createHelpBtn') || $('#bottomHelpBtn'));
+    goToStep(1);
+});
+
+$('#viewMyPendingHelpBtn')?.addEventListener('click', () => {
+    const section = $('#myHelpRequestsSection');
+    section?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    section?.focus({ preventScroll: true });
+});
+
+$('#attachHelpProofBtn')?.addEventListener('click', () => {
+    $('#helpProofFile')?.click();
+});
+
+$('#helpProofFile')?.addEventListener('change', async event => {
+    const file = event.target.files?.[0] || null;
+    const name = $('#helpProofFileName');
+    const input = event.target;
+    if (!file) {
+        selectedHelpProofFile = null;
+        selectedHelpProofPath = null;
+        if (name) name.textContent = '';
+        return;
+    }
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    const allowedTypes = {
+        pdf: ['application/pdf'],
+        jpg: ['image/jpeg'],
+        jpeg: ['image/jpeg'],
+        png: ['image/png'],
+        webp: ['image/webp']
+    };
+    if (!extension || !allowedTypes[extension] || (file.type && !allowedTypes[extension].includes(file.type))) {
+        selectedHelpProofFile = null;
+        selectedHelpProofPath = null;
+        input.value = '';
+        if (name) name.textContent = '';
+        showToast('Choose a PDF, JPG, PNG, or WebP file.');
+        return;
+    }
+    if (!file.size || file.size > HELP_PROOF_MAX_SIZE) {
+        selectedHelpProofFile = null;
+        selectedHelpProofPath = null;
+        input.value = '';
+        if (name) name.textContent = '';
+        showToast('Proof files must be 10 MB or smaller.');
+        return;
+    }
+
+    selectedHelpProofFile = file;
+    selectedHelpProofPath = null;
+    if (!window.currentUser) {
+        if (name) name.textContent = 'Sign in before uploading this file.';
+        showToast('Please sign in before attaching a proof document.');
+        return;
+    }
+
+    if (name) name.textContent = `Uploading ${file.name}…`;
+    const attachButton = $('#attachHelpProofBtn');
+    if (attachButton) attachButton.disabled = true;
+    try {
+        const { error: schemaError } = await sb
+            .from('help_requests')
+            .select('proof_path')
+            .limit(0);
+        if (schemaError) {
+            throw new Error('Help Request proof storage is not configured. Apply the required proof_path database migration first.');
+        }
+
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const objectPath = `${window.currentUser.id}/${crypto.randomUUID()}-${safeName}`;
+        const { data, error } = await sb.storage
+            .from(HELP_PROOF_BUCKET)
+            .upload(objectPath, file, {
+                contentType: file.type || allowedTypes[extension][0],
+                upsert: false
+            });
+        if (error) throw error;
+
+        selectedHelpProofPath = data.path;
+        if (name) name.textContent = `${file.name} · Uploaded`;
+    } catch (error) {
+        console.error('Help proof upload failed:', error);
+        selectedHelpProofFile = null;
+        selectedHelpProofPath = null;
+        input.value = '';
+        if (name) name.textContent = 'Upload failed. Select the file again after Storage is configured.';
+        showToast(error.message?.includes('proof_path')
+            ? error.message
+            : 'Unable to upload proof. Check the private Storage bucket and its access policies.');
+    } finally {
+        if (attachButton) attachButton.disabled = false;
+    }
+});
+
+$$('#creationTypeChoices button').forEach(btn => {
+    btn.onclick = () => {
+        creationType = btn.dataset.creationType || 'PERSONAL_GOAL';
+        goalData.creationType = creationType;
+        $$('#creationTypeChoices button').forEach(choice => {
+            choice.classList.toggle('selected', choice === btn);
+        });
+        selectedCreationCategory = creationType === 'HELP_SOMEONE' ? 'education' : 'Birthday';
+        renderCreationCategories();
+        goToStep(0);
+    };
+});
+
+$('#creationTypeNext')?.addEventListener('click', () => {
+    renderCreationCategories();
+    goToStep(1);
+});
+
+$('#step1Choices')?.addEventListener('click', event => {
+    const button = event.target.closest('button[data-value]');
+    if (!button) return;
+    selectedCreationCategory = button.dataset.value;
+    $$('#step1Choices button').forEach(choice => choice.classList.toggle('selected', choice === button));
+    renderCreationCategories();
+    if (selectedCreationCategory !== 'custom' && creationType === 'HELP_SOMEONE') {
+        setFieldValidation($('#customHelpCategoryInput'), true, '');
+    } else if (selectedCreationCategory !== 'Custom' && creationType === 'PERSONAL_GOAL') {
+        setFieldValidation($('#customOccasionInput'), true, '');
+    }
+});
+
 $('#step1Next')?.addEventListener('click', () => {
-    if (goalData.occasion === 'Custom') {
-        const customVal = $('#customOccasionInput')?.value.trim();
-        if (!customVal) {
-            showToast('Please enter your custom occasion name.');
-            $('#customOccasionInput')?.focus();
+    if (creationType === 'HELP_SOMEONE') {
+        if (selectedCreationCategory === 'custom') {
+            const customField = $('#customHelpCategoryInput');
+            const customCategory = customField?.value.trim() || '';
+            if (!setFieldValidation(customField, Boolean(customCategory), 'Enter a custom help category.')) {
+                customField?.focus();
+                return;
+            }
+            selectedHelpCategory = customCategory;
+        } else {
+            selectedHelpCategory = selectedCreationCategory;
+        }
+        goalData.helpCategory = selectedHelpCategory;
+        openHelpRequestFlow($('#step1Next'));
+        return;
+    }
+
+    goalData.creationType = 'PERSONAL_GOAL';
+    if (selectedCreationCategory === 'Custom') {
+        const customField = $('#customOccasionInput');
+        const customVal = customField?.value.trim() || '';
+        if (!setFieldValidation(customField, Boolean(customVal), 'Enter a custom occasion.')) {
+            customField?.focus();
             return;
         }
+        goalData.customOccasion = customVal;
         goalData.occasion = customVal;
+        goalData.isCustomOccasion = true;
+    } else {
+        goalData.customOccasion = '';
+        goalData.isCustomOccasion = false;
+        goalData.occasion = selectedCreationCategory;
     }
-    goToStep(editingFromReview ? 7 : 2);
+
+    goToStep(editingFromReview ? 6 : 2);
 });
 
 // Step 2: Name and description
 $('#step2Next')?.addEventListener('click', () => {
-    const name = $('#goalName')?.value.trim();
+    const nameField = $('#goalName');
+    const name = nameField?.value.trim() || '';
     const desc = $('#goalDesc')?.value.trim();
 
-    if (!name) {
-        showToast('Please provide a name for your goal.');
-        $('#goalName')?.focus();
+    if (!setFieldValidation(nameField, Boolean(name), 'Enter a name for your goal.')) {
+        nameField?.focus();
         return;
     }
 
     goalData.name = name;
     goalData.description = desc;
-    goToStep(editingFromReview ? 7 : 3);
+    goToStep(editingFromReview ? 6 : 3);
 });
 
 // Step 3: Target amount and deadline
 $('#step3Next')?.addEventListener('click', () => {
-    const amount = Number($('#goalAmount')?.value);
-    const deadline = $('#goalDeadline')?.value;
+    const amountField = $('#goalAmount');
+    const deadlineField = $('#goalDeadline');
+    const amount = Number(amountField?.value);
+    const deadline = deadlineField?.value || '';
+    const amountValid = setFieldValidation(amountField, Number.isFinite(amount) && amount >= 100, 'Enter a target amount of at least ₹100.');
+    const deadlineValid = setFieldValidation(deadlineField, Boolean(deadline) && deadline >= localDateValue(), 'Choose today or a future deadline.');
 
-    if (!amount || amount < 100) {
-        showToast('Please enter a target amount of at least ₹100.');
-        $('#goalAmount')?.focus();
+    if (!amountValid) {
+        amountField?.focus();
         return;
     }
 
-    if (!deadline) {
-        showToast('Please select a deadline for this goal.');
-        $('#goalDeadline')?.focus();
+    if (!deadlineValid) {
+        deadlineField?.focus();
         return;
     }
 
     goalData.target = amount;
     goalData.deadline = deadline;
-    goToStep(editingFromReview ? 7 : 4);
+    goToStep(editingFromReview ? 6 : 4);
 });
 
-// Step 4: Contribution style and visibility
+// Step 4: Contribution style; Personal Goals always remain private.
 $$('#styleChoices button').forEach(btn => {
     btn.onclick = () => {
         $$('#styleChoices button').forEach(b => b.classList.remove('selected'));
@@ -319,16 +722,8 @@ $$('#styleChoices button').forEach(btn => {
     };
 });
 
-$$('#visibilityChoices button').forEach(btn => {
-    btn.onclick = () => {
-        $$('#visibilityChoices button').forEach(b => b.classList.remove('selected'));
-        btn.classList.add('selected');
-        goalData.visibility = btn.dataset.value;
-    };
-});
-
 $('#step4Next')?.addEventListener('click', () => {
-    goToStep(editingFromReview ? 7 : 5);
+    goToStep(editingFromReview ? 6 : 5);
 });
 
 // Step 5: Creator authentication — requires real Google session
@@ -352,23 +747,8 @@ $('#step5Next')?.addEventListener('click', () => {
     $$('.google-user-preview strong').forEach(el => el.textContent = name);
     $$('.google-user-preview small').forEach(el => el.textContent = window.currentUser.email || '');
     $$('#step5Next').forEach(btn => btn.textContent = `Continue as ${name.split(' ')[0]}`);
-    goToStep(goalData.visibility === 'Public' ? 7 : 6);
+    goToStep(6);
 });
-
-// Step 6: Invitations logic removed (using share links only)
-
-$('#copyInviteLinkBtn')?.addEventListener('click', () => {
-    const span = $('#copyInviteLinkBtn')?.closest('.copy-link-box')?.querySelector('span');
-    const link = span?.textContent?.trim();
-    if (!link || !link.startsWith('http')) {
-        showToast('Your invite link will be ready after you create the goal.');
-        return;
-    }
-    navigator.clipboard?.writeText(link);
-    showToast('Goal invitation link copied to clipboard!');
-});
-
-$('#step6Next')?.addEventListener('click', () => goToStep(7));
 
 // Step 7: Goal creation — saves to Supabase
 $('#finishGoalBtn')?.addEventListener('click', async () => {
@@ -390,7 +770,7 @@ $('#finishGoalBtn')?.addEventListener('click', async () => {
             description: goalData.description,
             target_amount: goalData.target,
             deadline: goalData.deadline,
-            is_private: goalData.visibility === 'Private',
+            is_private: true,
             status: 'Active'
         })
         .select('id')
@@ -401,6 +781,12 @@ $('#finishGoalBtn')?.addEventListener('click', async () => {
         btn.disabled = false;
         btn.textContent = 'Create SharedGoal';
         return;
+    }
+    activeGoalId = String(goal.id);
+    try {
+        localStorage.setItem(`sharedGoalContributionStyle:${goal.id}`, goalData.style);
+    } catch (storageError) {
+        console.warn('Unable to save the contribution style in this browser:', storageError);
     }
 
     // Clear the pending OAuth resume state now that creation succeeded
@@ -414,25 +800,18 @@ $('#finishGoalBtn')?.addEventListener('click', async () => {
     });
 
     // Create/store invitations for private goals
-    if (goalData.visibility === 'Private') {
-        // Create general invite for the copy link UI
-        const { data: generalInvite } = await sb.from('goal_invites').insert({
-            goal_id: goal.id,
-            email: null,
-            role: 'Contributor',
-            status: 'Pending'
-        }).select('token').single();
+    // Create general invite for the copy link UI
+    const { data: generalInvite } = await sb.from('goal_invites').insert({
+        goal_id: goal.id,
+        email: null,
+        status: 'Pending'
+    }).select('token').single();
 
-        if (generalInvite) {
-            const goalUrl = window.location.origin + '/my-goals.html?invite=' + generalInvite.token;
-            sessionStorage.setItem('sharedGoalCreatedLink', goalUrl);
-            $$('.copy-link-box span').forEach(el => el.textContent = goalUrl);
-        }
-
+    if (generalInvite) {
+        const goalUrl = window.location.origin + '/my-goals.html?invite=' + generalInvite.token;
+        sessionStorage.setItem('sharedGoalCreatedLink', goalUrl);
+        $$('.copy-link-box span').forEach(el => el.textContent = goalUrl);
     }
-
-    // Re-enable the Copy Link button now that goal is created (if applicable)
-    $$('#copyInviteLinkBtn').forEach(btn => btn.disabled = false);
 
     showToast('🎉 SharedGoal created successfully!');
     btn.disabled = false;
@@ -441,19 +820,25 @@ $('#finishGoalBtn')?.addEventListener('click', async () => {
 
     setTimeout(() => {
         if (!window.location.pathname.includes('my-goals.html')) {
-            window.location.href = 'my-goals.html';
+            window.location.href = `my-goals.html?goal=${encodeURIComponent(goal.id)}`;
         } else {
-            loadMyGoals();
+            const url = new URL(window.location.href);
+            url.searchParams.set('goal', goal.id);
+            window.history.replaceState({}, '', url);
+            loadMyGoals(goal.id);
         }
     }, 700);
 });
 
 $$('.step-back-btn').forEach(btn => {
     btn.onclick = () => {
-        if (currentStep === 7 && goalData.visibility === 'Public') {
-            goToStep(5);
+        if (currentStep === 1) {
+            if (entryContext === 'HOME') goToStep(0);
+            else closeModal();
         } else if (currentStep > 1) {
             goToStep(currentStep - 1);
+        } else {
+            closeModal();
         }
     };
 });
@@ -462,10 +847,91 @@ $$('.step-back-btn').forEach(btn => {
 let currentContributeGoalId = null;
 let currentContributeHelpId = null;
 
+async function openHelpContribution(helpId, title, triggerElement = null) {
+    if (!helpId) {
+        showToast('This Help Someone request is unavailable.');
+        return;
+    }
+    if (!authResolved) await authReady;
+    if (!authResolved) {
+        showToast('Unable to verify your sign-in status. Please try again.');
+        return;
+    }
+    if (!window.currentUser) {
+        sessionStorage.setItem(PENDING_HELP_CONTRIBUTION_KEY, JSON.stringify({
+            requestId: String(helpId),
+            title: title || 'Help Someone'
+        }));
+        showToast('Please sign in to contribute.');
+        openModal('#loginOverlay', triggerElement);
+        return;
+    }
+
+    currentContributeGoalId = null;
+    currentContributeHelpId = String(helpId);
+    currentContributeSplitStyle = 'Custom amounts';
+    currentContributeFixedAmount = null;
+    currentContributeRemaining = null;
+    const amountInput = $('#contributionAmount');
+    if (amountInput) {
+        amountInput.readOnly = false;
+        amountInput.removeAttribute('max');
+        amountInput.value = '1000';
+    }
+    $$('.quick button').forEach(button => {
+        button.disabled = false;
+    });
+    const titleElement = $('#contributionGoal');
+    if (titleElement) titleElement.textContent = title || 'Help Someone';
+    openModal('#contributionOverlay', triggerElement);
+}
+
+async function restorePendingHelpContribution(requests) {
+    if (!window.currentUser) return;
+    const saved = sessionStorage.getItem(PENDING_HELP_CONTRIBUTION_KEY);
+    if (!saved) return;
+
+    try {
+        const pending = JSON.parse(saved);
+        const request = requests.find(row => String(row.id) === String(pending.requestId));
+        if (!request) {
+            sessionStorage.removeItem(PENDING_HELP_CONTRIBUTION_KEY);
+            showToast('That Help Someone request is no longer available to contribute to.');
+            return;
+        }
+        sessionStorage.removeItem(PENDING_HELP_CONTRIBUTION_KEY);
+        await openHelpContribution(request.id, request.title);
+    } catch (error) {
+        console.error('Unable to restore the Help Someone contribution:', error);
+        sessionStorage.removeItem(PENDING_HELP_CONTRIBUTION_KEY);
+        showToast('Unable to reopen that contribution. Please select the request again.');
+    }
+}
+
 $$('[data-contribute]').forEach(btn => {
     btn.onclick = () => {
         currentContributeGoalId = btn.dataset.contributeId || null;
         currentContributeHelpId = btn.dataset.helpId || null;
+        if (currentContributeHelpId) {
+            openHelpContribution(currentContributeHelpId, btn.dataset.contribute || 'Help Someone', btn);
+            return;
+        }
+        if (currentContributeGoalId && window.currentDashboardGoal) {
+            configureGoalContribution(window.currentDashboardGoal);
+        } else {
+            currentContributeSplitStyle = 'Custom amounts';
+            currentContributeFixedAmount = null;
+            currentContributeRemaining = null;
+            const input = $('#contributionAmount');
+            if (input) {
+                input.readOnly = false;
+                input.removeAttribute('max');
+                input.value = '1000';
+            }
+            $$('.quick button').forEach(quickButton => {
+                quickButton.disabled = false;
+            });
+        }
         const titleEl = $('#contributionGoal');
         if (titleEl) titleEl.textContent = btn.dataset.contribute || 'Goal';
         openModal('#contributionOverlay', btn);
@@ -475,7 +941,7 @@ $$('[data-contribute]').forEach(btn => {
 $$('.quick button').forEach(btn => {
     btn.onclick = () => {
         const input = $('#contributionAmount');
-        if (input) input.value = btn.dataset.amount;
+        if (input && !input.readOnly) input.value = btn.dataset.amount;
     };
 });
 
@@ -487,9 +953,36 @@ $$('.payments button').forEach(btn => {
 });
 
 $('#makeContributionBtn')?.addEventListener('click', async () => {
+    if (currentContributeHelpId) {
+        if (!authResolved) await authReady;
+        if (!authResolved) {
+            showToast('Unable to verify your sign-in status. Please try again.');
+            return;
+        }
+        if (!window.currentUser) {
+            const pendingHelpId = currentContributeHelpId;
+            const pendingHelpTitle = $('#contributionGoal')?.textContent || 'Help Someone';
+            sessionStorage.setItem(PENDING_HELP_CONTRIBUTION_KEY, JSON.stringify({
+                requestId: String(pendingHelpId),
+                title: pendingHelpTitle
+            }));
+            openModal('#loginOverlay', $('#makeContributionBtn'));
+            showToast('Please sign in to contribute.');
+            return;
+        }
+    }
+
     const amount = Number($('#contributionAmount')?.value);
     if (!amount || amount <= 0 || !Number.isFinite(amount)) {
         showToast('Please enter a valid numeric contribution amount.');
+        return;
+    }
+    if (currentContributeGoalId && currentContributeSplitStyle === 'Equal split' && amount !== currentContributeFixedAmount) {
+        showToast('This goal uses an assigned Equal Split contribution amount.');
+        return;
+    }
+    if (currentContributeGoalId && currentContributeSplitStyle !== 'Equal split' && amount > currentContributeRemaining) {
+        showToast(`Contribution cannot exceed the remaining goal amount of ₹${Number(currentContributeRemaining).toLocaleString('en-IN')}.`);
         return;
     }
 
@@ -505,6 +998,9 @@ $('#makeContributionBtn')?.addEventListener('click', async () => {
         closeModal();
         currentContributeHelpId = null;
         currentContributeGoalId = null;
+        currentContributeSplitStyle = 'Custom amounts';
+        currentContributeFixedAmount = null;
+        currentContributeRemaining = null;
         return;
     }
 
@@ -574,34 +1070,76 @@ const categoryImages = {
     'charity / help someone': 'assets/images/help-03-assistance.png'
 };
 
+function setDashboardSectionError(container, message) {
+    if (!container) return;
+    container.replaceChildren();
+    const text = document.createElement('p');
+    text.style.cssText = 'color: var(--text-secondary); font-size: 14px;';
+    text.textContent = message;
+    const retry = document.createElement('button');
+    retry.type = 'button';
+    retry.className = 'text-link';
+    retry.textContent = 'Retry';
+    retry.addEventListener('click', () => loadMyGoals(activeGoalId));
+    container.append(text, retry);
+}
+
 function showGoalData(g) {
     const setText = (id, val) => { const el = $(id); if (el) el.textContent = val; };
+    const collectionUnavailable = Boolean(g.rawGoal?.sectionErrors?.contributions);
+    const membersUnavailable = Boolean(g.rawGoal?.sectionErrors?.members);
     setText('#mainGoalTitle', g.title);
     setText('#mainGoalOccasion', g.occasion);
     setText('#mainGoalDesc', g.description);
-    setText('#mainGoalCollected', '₹' + g.collected.toLocaleString('en-IN'));
+    setText('#mainGoalCollected', collectionUnavailable ? '—' : '₹' + g.collected.toLocaleString('en-IN'));
     setText('#mainGoalTarget', ' of ₹' + g.target.toLocaleString('en-IN'));
-    setText('#mainGoalPercent', g.percent + '% collected');
+    setText('#mainGoalPercent', collectionUnavailable ? 'Unavailable' : g.percent + '% collected');
     setText('#mainGoalDays', g.daysLeft > 0 ? `${g.daysLeft} days left` : 'Completed');
-    setText('#mainGoalMembers', `${g.members} members`);
-    setText('#yourContribAmount', '₹' + g.userContrib.toLocaleString('en-IN'));
+    setText('#mainGoalMembers', membersUnavailable ? 'Members unavailable' : `${g.members} members`);
+    setText('#yourContribAmount', collectionUnavailable ? '—' : '₹' + g.userContrib.toLocaleString('en-IN'));
 
     const img = $('#mainGoalImg');
     if (img) img.src = g.image;
     const bar = $('#mainGoalBar');
-    if (bar) bar.style.width = g.percent + '%';
+    if (bar) bar.style.width = collectionUnavailable ? '0%' : g.percent + '%';
+
+    // The logged-out dashboard intentionally uses the built-in demo goal.
+    if (!g.rawGoal) {
+        setText('#yourContribBadge', 'Demo');
+        setText('#yourContribDetail', 'Sign in to view your contribution.');
+        setText('#memberCountBadge', 'Demo');
+        setText('#membersListContainer', '');
+        if ($('#membersAvatarRow')) $('#membersAvatarRow').replaceChildren();
+        $('#membersListContainer')?.insertAdjacentText('afterbegin', 'Sign in to view goal members.');
+        setText('#contribCountBadge', 'Demo');
+        setText('#contribListContainer', '');
+        $('#contribListContainer')?.insertAdjacentText('afterbegin', 'Sign in to view contributions.');
+        setText('#giftItemsList', '');
+        $('#giftItemsList')?.insertAdjacentText('afterbegin', 'Sign in to view gift ideas.');
+        setText('#groupDecisionContainer', '');
+        $('#groupDecisionContainer')?.insertAdjacentText('afterbegin', 'Sign in to view group decisions.');
+        setText('#activityTimelineContainer', '');
+        $('#activityTimelineContainer')?.insertAdjacentText('afterbegin', 'Sign in to view activity.');
+        if ($('#goalOutcomeStatus')) {
+            $('#goalOutcomeStatus').textContent = 'Sign in to view goal outcome details.';
+            $('#goalOutcomeStatus').style.display = 'block';
+        }
+        return;
+    }
 
     // Dashboard Integration
-    if (!g.rawGoal) return;
-
+    activeGoalId = String(g.goalId || g.id);
     window.currentDashboardGoal = g;
 
     // 2. Your Contribution
     const hasContrib = g.userContrib > 0;
-    setText('#yourContribBadge', hasContrib ? 'Confirmed' : '—');
+    const contributionError = g.rawGoal.sectionErrors?.contributions;
+    setText('#yourContribBadge', contributionError ? 'Unavailable' : hasContrib ? 'Confirmed' : '—');
     const badgeEl = $('#yourContribBadge');
-    if (badgeEl) badgeEl.className = hasContrib ? 'status-badge confirmed' : 'status-badge';
-    setText('#yourContribDetail', hasContrib ? 'Thanks for being part of this goal!' : 'No contribution yet.');
+    if (badgeEl) badgeEl.className = !contributionError && hasContrib ? 'status-badge confirmed' : 'status-badge';
+    setText('#yourContribDetail', contributionError
+        ? 'Unable to load contribution details.'
+        : hasContrib ? 'Thanks for being part of this goal!' : 'No contribution yet.');
     const contribBtn = $('#addContribBtn');
     if (contribBtn) {
         contribBtn.dataset.contributeId = g.id;
@@ -609,6 +1147,7 @@ function showGoalData(g) {
         // ensure event listener runs
         contribBtn.onclick = () => {
             currentContributeGoalId = g.id;
+            configureGoalContribution(g);
             const titleEl = $('#contributionGoal');
             if (titleEl) titleEl.textContent = g.title;
             openModal('#contributionOverlay', contribBtn);
@@ -616,7 +1155,7 @@ function showGoalData(g) {
     }
 
     // 3. Members
-    setText('#memberCountBadge', `${g.members} people`);
+    setText('#memberCountBadge', g.rawGoal.sectionErrors?.members ? 'Unavailable' : `${g.members} people`);
     const membersRow = $('#membersAvatarRow');
     const membersList = $('#membersListContainer');
     if (membersRow && membersList) {
@@ -624,42 +1163,48 @@ function showGoalData(g) {
         membersList.innerHTML = '';
         const members = g.rawGoal.goal_members || [];
 
-        members.slice(0, 4).forEach(m => {
-            const initial = m.profiles?.name ? m.profiles.name.charAt(0).toUpperCase() : '?';
-            membersRow.innerHTML += `<i>${initial}</i>`;
-        });
-        if (members.length > 4) {
-            membersRow.innerHTML += `<i class="more">+${members.length - 4}</i>`;
-        }
-
-        if (members.length === 0) {
-            membersList.innerHTML = '<p style="color: var(--text-secondary); font-size: 14px;">No members yet.</p>';
+        if (g.rawGoal.sectionErrors?.members) {
+            setDashboardSectionError(membersList, 'Unable to load members.');
         } else {
-            members.forEach(m => {
-                const name = m.profiles?.name || 'Unknown';
-                membersList.innerHTML += `
-                    <div class="member-item">
-                        <div class="member-info">
-                            <strong>${name}</strong>
-                        </div>
-                        <span class="member-role">${m.role}</span>
-                    </div>
-                `;
+            members.slice(0, 4).forEach(m => {
+                const initial = m.profiles?.name ? m.profiles.name.charAt(0).toUpperCase() : '?';
+                membersRow.innerHTML += `<i>${initial}</i>`;
             });
+            if (members.length > 4) {
+                membersRow.innerHTML += `<i class="more">+${members.length - 4}</i>`;
+            }
+
+            if (members.length === 0) {
+                membersList.innerHTML = '<p style="color: var(--text-secondary); font-size: 14px;">No members yet.</p>';
+            } else {
+                members.forEach(m => {
+                    const name = m.profiles?.name || 'Unknown';
+                    membersList.innerHTML += `
+                        <div class="member-item">
+                            <div class="member-info">
+                                <strong>${name}</strong>
+                            </div>
+                            <span class="member-role">${m.role}</span>
+                        </div>
+                    `;
+                });
+            }
         }
     }
 
     // 4. Contributions
     const contribs = g.rawGoal.contributions || [];
     const confirmedCount = contribs.filter(c => c.status === 'Confirmed').length;
-    setText('#contribCountBadge', confirmedCount > 0 ? `${confirmedCount} Confirmed` : '—');
+    setText('#contribCountBadge', contributionError ? 'Unavailable' : confirmedCount > 0 ? `${confirmedCount} Confirmed` : '—');
     const cBadgeEl = $('#contribCountBadge');
     if (cBadgeEl) cBadgeEl.className = confirmedCount > 0 ? 'status-badge confirmed' : 'status-badge';
 
     const contribList = $('#contribListContainer');
     if (contribList) {
         contribList.innerHTML = '';
-        if (contribs.length === 0) {
+        if (contributionError) {
+            setDashboardSectionError(contribList, 'Unable to load contributions.');
+        } else if (contribs.length === 0) {
             contribList.innerHTML = '<p style="color: var(--text-secondary); font-size: 14px;">No contributions yet.</p>';
         } else {
             const isCreatorForContribs = g.rawGoal.creator_id === window.currentUser?.id;
@@ -729,50 +1274,64 @@ function showGoalData(g) {
     const timeline = $('#activityTimelineContainer');
     if (timeline) {
         timeline.innerHTML = '';
-        const events = [];
-        events.push({ text: `Goal created`, sub: new Date(g.rawGoal.created_at).toLocaleDateString(), date: new Date(g.rawGoal.created_at) });
+        if (g.rawGoal.sectionErrors?.contributions || g.rawGoal.sectionErrors?.members) {
+            setDashboardSectionError(timeline, 'Unable to load activity.');
+        } else {
+            const events = [];
+            events.push({ text: `Goal created`, sub: new Date(g.rawGoal.created_at).toLocaleDateString(), date: new Date(g.rawGoal.created_at) });
 
-        contribs.forEach(c => {
-            const name = c.profiles?.name || 'Someone';
-            events.push({
-                text: `${name} contributed ₹${Number(c.amount).toLocaleString('en-IN')}`,
-                sub: `${new Date(c.created_at).toLocaleDateString()} via ${c.payment_method || 'Unknown'}`,
-                date: new Date(c.created_at)
-            });
-        });
-
-        const members = g.rawGoal.goal_members || [];
-        members.forEach(m => {
-            if (m.role !== 'Creator') {
-                const name = m.profiles?.name || 'Someone';
+            contribs.forEach(c => {
+                const name = c.profiles?.name || 'Someone';
                 events.push({
-                    text: `${name} joined the goal`,
-                    sub: new Date(m.joined_at).toLocaleDateString(),
-                    date: new Date(m.joined_at)
+                    text: `${name} contributed ₹${Number(c.amount).toLocaleString('en-IN')}`,
+                    sub: `${new Date(c.created_at).toLocaleDateString()} via ${c.payment_method || 'Unknown'}`,
+                    date: new Date(c.created_at)
+                });
+            });
+
+            const members = g.rawGoal.goal_members || [];
+            members.forEach(m => {
+                if (m.role !== 'Creator') {
+                    const name = m.profiles?.name || 'Someone';
+                    events.push({
+                        text: `${name} joined the goal`,
+                        sub: new Date(m.joined_at).toLocaleDateString(),
+                        date: new Date(m.joined_at)
+                    });
+                }
+            });
+
+            events.sort((a, b) => b.date - a.date);
+
+            if (events.length === 0) {
+                timeline.innerHTML = '<p style="color: var(--text-secondary); font-size: 14px;">No activity yet.</p>';
+            } else {
+                events.forEach(e => {
+                    timeline.innerHTML += `
+                        <div class="row-item">
+                            <div>
+                                <strong>${e.text}</strong>
+                                <small>${e.sub}</small>
+                            </div>
+                        </div>
+                    `;
                 });
             }
-        });
-
-        events.sort((a, b) => b.date - a.date);
-
-        if (events.length === 0) {
-            timeline.innerHTML = '<p style="color: var(--text-secondary); font-size: 14px;">No activity yet.</p>';
-        } else {
-            events.forEach(e => {
-                timeline.innerHTML += `
-                    <div class="row-item">
-                        <div>
-                            <strong>${e.text}</strong>
-                            <small>${e.sub}</small>
-                        </div>
-                    </div>
-                `;
-            });
         }
     }
 
     // 8. Spending
-    setText('#spendingCollected', '₹' + g.collected.toLocaleString('en-IN'));
+    setText('#spendingCollected', contributionError ? '—' : '₹' + g.collected.toLocaleString('en-IN'));
+    const outcomeStatus = $('#goalOutcomeStatus');
+    if (outcomeStatus) {
+        if (contributionError) {
+            outcomeStatus.style.display = 'block';
+            setDashboardSectionError(outcomeStatus, 'Unable to load goal outcome totals.');
+        } else {
+            outcomeStatus.replaceChildren();
+            outcomeStatus.style.display = 'none';
+        }
+    }
 
     // 9. Complete Goal overlay — show real collected amount
     setText('#completeGoalCollected', '₹' + g.collected.toLocaleString('en-IN'));
@@ -867,7 +1426,9 @@ function showGoalData(g) {
     const giftList = $('#giftItemsList');
     if (giftList) {
         giftList.innerHTML = '';
-        if (selectedGift) {
+        if (g.rawGoal.sectionErrors?.gifts) {
+            setDashboardSectionError(giftList, 'Unable to load gift ideas.');
+        } else if (selectedGift) {
             const member = members.find(m => m.user_id === selectedGift.user_id);
             const name = member?.profiles?.name || 'Someone';
             const linkStr = selectedGift.link ? `<a href="${selectedGift.link}" target="_blank" rel="noopener noreferrer" style="color: var(--teal); text-decoration: underline;">(Link)</a>` : '';
@@ -931,7 +1492,9 @@ function showGoalData(g) {
 
     const groupDecisionContainer = $('#groupDecisionContainer');
     if (groupDecisionContainer) {
-        if (selectedGift) {
+        if (g.rawGoal.sectionErrors?.gifts) {
+            setDashboardSectionError(groupDecisionContainer, 'Unable to load group decisions.');
+        } else if (selectedGift) {
             const votes = selectedGift.gift_votes || [];
             const percent = Math.round((votes.length / memberCount) * 100);
             groupDecisionContainer.innerHTML = `
@@ -987,18 +1550,74 @@ const sampleGoals = {
         collected: 16500, target: 15000, percent: 100, daysLeft: 0, members: 9, userContrib: 2000
     }
 };
+const demoGoalPreview = JSON.parse(JSON.stringify(sampleGoals));
+
+function setGoalsPageState(mode, message = '') {
+    const loadingEl = $('#goalsLoadingState');
+    const emptyEl = $('#goalsEmptyState');
+    const errorEl = $('#goalsErrorState');
+    const contentEl = $('#goalsContent');
+
+    [loadingEl, emptyEl, errorEl, contentEl].forEach(el => {
+        if (el) el.style.display = 'none';
+    });
+
+    if (mode === 'loading' && loadingEl) {
+        const title = loadingEl.querySelector('h2');
+        if (title) title.textContent = message || 'Loading your goals...';
+        loadingEl.style.display = 'flex';
+        return;
+    }
+
+    if (mode === 'empty' && emptyEl) {
+        const title = emptyEl.querySelector('h2');
+        const text = emptyEl.querySelector('p');
+        if (title) title.textContent = 'No goals yet';
+        if (text) text.textContent = "You haven't created or joined any goals yet. Create your first goal.";
+        emptyEl.style.display = 'flex';
+        return;
+    }
+
+    if (mode === 'error' && errorEl) {
+        const title = errorEl.querySelector('h2');
+        const text = errorEl.querySelector('p');
+        const retry = errorEl.querySelector('button');
+        if (title) title.textContent = 'Unable to load your goals';
+        if (text) text.textContent = message || 'Something went wrong while loading your goals.';
+        if (retry) retry.onclick = () => authResolved ? loadMyGoals() : initializeApp();
+        errorEl.style.display = 'flex';
+        return;
+    }
+
+    if (contentEl) contentEl.style.display = 'block';
+}
 
 function updateGoalsEmptyState() {
-    const emptyEl = $('#goalsEmptyState');
-    const contentEl = $('#goalsContent');
+    if (!window.currentUser) return;
     const hasGoals = Object.keys(sampleGoals).length > 0;
-
-    if (emptyEl && contentEl) {
-        emptyEl.style.display = hasGoals ? 'none' : 'flex';
-        contentEl.style.display = hasGoals ? 'block' : 'none';
+    if (hasGoals) {
+        setGoalsPageState('content');
+    } else {
+        setGoalsPageState('empty');
     }
 }
-updateGoalsEmptyState();
+
+function renderLoggedOutGoals() {
+    if (!$('#goalsContent')) return;
+    goalsLoadVersion++;
+    Object.keys(sampleGoals).forEach(key => delete sampleGoals[key]);
+    Object.assign(sampleGoals, JSON.parse(JSON.stringify(demoGoalPreview)));
+    activeGoalId = null;
+    window.currentDashboardGoal = null;
+    const tabs = $('.goal-tabs');
+    if (tabs) {
+        const createButton = tabs.querySelector('[data-create]');
+        tabs.replaceChildren();
+        if (createButton) tabs.appendChild(createButton);
+    }
+    setGoalsPageState('content');
+    showGoalData(sampleGoals.aarav);
+}
 
 function bindGoalTabs() {
     $$('.goal-tabs button[data-goal]').forEach(btn => {
@@ -1007,6 +1626,7 @@ function bindGoalTabs() {
             if (!g) return;
             $$('.goal-tabs button').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
+            activeGoalId = String(g.goalId);
             showGoalData(g);
         };
     });
@@ -1014,107 +1634,337 @@ function bindGoalTabs() {
 bindGoalTabs();
 
 // Load real goals from Supabase
-async function loadMyGoals() {
-    if (!window.currentUser) return;
-
-    const { data: memberRows } = await sb.from('goal_members').select('goal_id').eq('user_id', window.currentUser.id);
-    const goalIds = (memberRows || []).map(r => r.goal_id);
-
-    if (!goalIds.length) {
-        Object.keys(sampleGoals).forEach(k => delete sampleGoals[k]);
-        updateGoalsEmptyState();
+let goalsLoadVersion = 0;
+async function loadMyGoals(preferredGoalId = null) {
+    if (!authResolved) return;
+    if (!window.currentUser) {
+        renderLoggedOutGoals();
         return;
     }
 
-    const { data: rows, error } = await sb
-        .from('goals')
-        .select(`
-            id, name, occasion, description, target_amount, deadline, is_private, status, created_at, creator_id,
-            goal_members(user_id, role, joined_at, profiles(name, avatar_url)),
-            contributions(id, amount, status, user_id, created_at, payment_method, profiles(name, avatar_url)),
-            gift_suggestions(id, name, price, link, is_selected, created_at, user_id, gift_votes(user_id))
-        `)
-        .in('id', goalIds)
-        .in('status', ['Active', 'Completed', 'Closed', 'Expired']);
+    const loadVersion = ++goalsLoadVersion;
+    const userId = window.currentUser.id;
+    const requestedGoalId = preferredGoalId
+        || new URLSearchParams(window.location.search).get('goal')
+        || activeGoalId;
+    setGoalsPageState('loading', 'Loading your goals...');
 
-    if (error) {
-        console.error("Supabase Error loading goals:", error);
-    }
+    try {
+        const { data: memberRows, error: memberError } = await sb
+            .from('goal_members')
+            .select('goal_id')
+            .eq('user_id', userId);
 
-    if (error || !rows?.length) {
-        // clear demo data, show empty state
-        Object.keys(sampleGoals).forEach(k => delete sampleGoals[k]);
-        updateGoalsEmptyState();
-        return;
-    }
+        if (loadVersion !== goalsLoadVersion || window.currentUser?.id !== userId) return;
+        if (memberError) throw memberError;
 
-    // Replace demo data with real goals (RLS guarantees only the user's visible goals are returned)
-    Object.keys(sampleGoals).forEach(k => delete sampleGoals[k]);
+        const goalIds = [...new Set([
+            ...(memberRows || []).map(r => r.goal_id),
+            ...(preferredGoalId ? [preferredGoalId] : [])
+        ])];
 
-    rows.forEach(g => {
-        const confirmed = (g.contributions || []).filter(c => c.status === 'Confirmed');
-        const collected = confirmed.reduce((s, c) => s + Number(c.amount), 0);
-        const userContrib = confirmed
-            .filter(c => c.user_id === window.currentUser.id)
-            .reduce((s, c) => s + Number(c.amount), 0);
-        const target = Number(g.target_amount) || 0;
-        const percent = target > 0 ? Math.min(100, Math.round(collected / target * 100)) : 0;
-        const daysLeft = Math.max(0, Math.ceil((new Date(g.deadline) - new Date()) / 86400000));
-        const visibility = g.is_private ? 'Private' : 'Public';
-
-        sampleGoals[g.id] = {
-            title: g.name,
-            occasion: `${g.occasion} · ${g.status} · ${visibility}`,
-            image: categoryImages[(g.occasion || '').trim().toLowerCase()] || 'assets/images/occasion-01-birthday.png',
-            description: g.description || '',
-            collected, target, percent, daysLeft,
-            members: (g.goal_members || []).length,
-            userContrib,
-            id: g.id,
-            goalId: g.id,
-            rawGoal: g
-        };
-    });
-
-    // Rebuild tabs
-    const tabsEl = $('.goal-tabs');
-    if (tabsEl) {
-        // Keep the "+ Start Another Goal" button
-        const addBtn = tabsEl.querySelector('[data-create]');
-        tabsEl.innerHTML = '';
-        Object.entries(sampleGoals).forEach(([key, g], i) => {
-            const btn = document.createElement('button');
-            btn.dataset.goal = key;
-            btn.dataset.contributeId = g.goalId;
-            if (i === 0) btn.classList.add('active');
-            btn.textContent = g.title;
-            tabsEl.appendChild(btn);
-        });
-        if (addBtn) tabsEl.appendChild(addBtn);
-
-        // Update contribute buttons with real goal id
-        const firstGoal = Object.values(sampleGoals)[0];
-        if (firstGoal) {
-            $$('[data-contribute]').forEach(b => {
-                b.dataset.contributeId = firstGoal.goalId;
-            });
+        if (!goalIds.length) {
+            Object.keys(sampleGoals).forEach(k => delete sampleGoals[k]);
+            activeGoalId = null;
+            setGoalsPageState('empty');
+            loadMyHelpRequests();
+            return;
         }
 
-        bindGoalTabs();
+        const { data: rows, error } = await sb
+            .from('goals')
+            .select(`
+                id, name, occasion, description, target_amount, deadline, is_private, status, created_at, creator_id
+            `)
+            .in('id', goalIds)
+            .in('status', ['Active', 'Completed', 'Closed', 'Expired']);
+
+        if (loadVersion !== goalsLoadVersion || window.currentUser?.id !== userId) return;
+        if (error) throw error;
+        if (!rows?.length) {
+            Object.keys(sampleGoals).forEach(k => delete sampleGoals[k]);
+            activeGoalId = null;
+            setGoalsPageState('empty');
+            loadMyHelpRequests();
+            return;
+        }
+
+        const querySection = async query => {
+            try {
+                return await query;
+            } catch (sectionError) {
+                return { data: null, error: sectionError };
+            }
+        };
+        const [membersResult, contributionsResult, giftsResult] = await Promise.all([
+            querySection(sb.from('goal_members')
+                .select('goal_id, user_id, role, joined_at, profiles(name, avatar_url)')
+                .in('goal_id', goalIds)),
+            querySection(sb.from('contributions')
+                .select('id, goal_id, amount, status, user_id, created_at, payment_method, profiles(name, avatar_url)')
+                .in('goal_id', goalIds)),
+            querySection(sb.from('gift_suggestions')
+                .select('id, goal_id, name, price, link, is_selected, created_at, user_id, gift_votes(user_id)')
+                .in('goal_id', goalIds))
+        ]);
+        if (loadVersion !== goalsLoadVersion || window.currentUser?.id !== userId) return;
+        const membersByGoal = new Map();
+        const contributionsByGoal = new Map();
+        const giftsByGoal = new Map();
+        (membersResult.data || []).forEach(row => {
+            if (!membersByGoal.has(row.goal_id)) membersByGoal.set(row.goal_id, []);
+            membersByGoal.get(row.goal_id).push(row);
+        });
+        (contributionsResult.data || []).forEach(row => {
+            if (!contributionsByGoal.has(row.goal_id)) contributionsByGoal.set(row.goal_id, []);
+            contributionsByGoal.get(row.goal_id).push(row);
+        });
+        (giftsResult.data || []).forEach(row => {
+            if (!giftsByGoal.has(row.goal_id)) giftsByGoal.set(row.goal_id, []);
+            giftsByGoal.get(row.goal_id).push(row);
+        });
+        const sectionErrors = {
+            members: membersResult.error,
+            contributions: contributionsResult.error,
+            gifts: giftsResult.error
+        };
+
+        Object.keys(sampleGoals).forEach(k => delete sampleGoals[k]);
+
+        rows.forEach(g => {
+            g.goal_members = membersByGoal.get(g.id) || [];
+            g.contributions = contributionsByGoal.get(g.id) || [];
+            g.gift_suggestions = giftsByGoal.get(g.id) || [];
+            g.sectionErrors = sectionErrors;
+            const confirmed = g.contributions.filter(c => c.status === 'Confirmed');
+            const collected = confirmed.reduce((s, c) => s + Number(c.amount), 0);
+            const userContrib = confirmed
+                .filter(c => c.user_id === window.currentUser.id)
+                .reduce((s, c) => s + Number(c.amount), 0);
+            const target = Number(g.target_amount) || 0;
+            const percent = target > 0 ? Math.min(100, Math.round(collected / target * 100)) : 0;
+            const daysLeft = g.deadline ? Math.max(0, Math.ceil((new Date(g.deadline) - new Date()) / 86400000)) : 0;
+            const visibility = g.is_private ? 'Private' : 'Public';
+
+            sampleGoals[g.id] = {
+                title: g.name,
+                occasion: `${g.occasion} · ${g.status} · ${visibility}`,
+                image: categoryImages[(g.occasion || '').trim().toLowerCase()] || 'assets/images/occasion-01-birthday.png',
+                description: g.description || '',
+                collected, target, percent, daysLeft,
+                members: sectionErrors.members ? 0 : g.goal_members.length,
+                userContrib,
+                id: g.id,
+                goalId: g.id,
+                rawGoal: g
+            };
+        });
+
+        const tabsEl = $('.goal-tabs');
+        if (tabsEl) {
+            const addBtn = tabsEl.querySelector('[data-create]');
+            tabsEl.innerHTML = '';
+            Object.entries(sampleGoals).forEach(([key, g], i) => {
+                const btn = document.createElement('button');
+                btn.dataset.goal = key;
+                btn.dataset.contributeId = g.goalId;
+                btn.textContent = g.title;
+                tabsEl.appendChild(btn);
+            });
+            if (addBtn) tabsEl.appendChild(addBtn);
+
+            const firstGoal = Object.values(sampleGoals)[0];
+            if (firstGoal) {
+                $$('[data-contribute]').forEach(b => {
+                    b.dataset.contributeId = firstGoal.goalId;
+                });
+            }
+
+            bindGoalTabs();
+        }
+
+        setGoalsPageState('content');
+
+        const goalKeys = Object.keys(sampleGoals);
+        const selectedGoalKey = requestedGoalId && sampleGoals[requestedGoalId]
+            ? requestedGoalId
+            : goalKeys[0];
+        if (selectedGoalKey) {
+            activeGoalId = String(selectedGoalKey);
+            $$('.goal-tabs button[data-goal]').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.goal === activeGoalId);
+            });
+            showGoalData(sampleGoals[selectedGoalKey]);
+        }
+
+        const pendingLink = sessionStorage.getItem('sharedGoalCreatedLink');
+        if (pendingLink) {
+            $$('.copy-link-box span').forEach(el => el.textContent = pendingLink);
+            sessionStorage.removeItem('sharedGoalCreatedLink');
+        }
+    } catch (error) {
+        if (loadVersion !== goalsLoadVersion || window.currentUser?.id !== userId) return;
+        console.error('Supabase Error loading goals:', error);
+        Object.keys(sampleGoals).forEach(k => delete sampleGoals[k]);
+        setGoalsPageState('error', 'Unable to load your goals.');
     }
 
-    updateGoalsEmptyState();
+    loadMyHelpRequests();
+}
 
-    // Show first goal
-    const firstKey = Object.keys(sampleGoals)[0];
-    if (firstKey) showGoalData(sampleGoals[firstKey]);
+async function loadMyHelpRequests() {
+    const section = $('#myHelpRequestsSection');
+    const list = $('#myHelpRequestsList');
+    if (!section || !list) return;
 
-    // Apply newly-created goal invite link passed via sessionStorage from index.html
-    const pendingLink = sessionStorage.getItem('sharedGoalCreatedLink');
-    if (pendingLink) {
-        $$('.copy-link-box span').forEach(el => el.textContent = pendingLink);
-        $$('#copyInviteLinkBtn').forEach(btn => btn.disabled = false);
-        sessionStorage.removeItem('sharedGoalCreatedLink');
+    if (!window.currentUser) {
+        section.style.display = 'none';
+        const pendingButton = $('#viewMyPendingHelpBtn');
+        if (pendingButton) pendingButton.style.display = 'none';
+        return;
+    }
+
+    const userId = window.currentUser.id;
+    section.style.display = 'none';
+    list.innerHTML = '<p style="color: var(--text-secondary); font-size: 14px;">Loading your requests...</p>';
+    const pendingButton = $('#viewMyPendingHelpBtn');
+    if (pendingButton) pendingButton.style.display = 'none';
+
+    try {
+        const [{ data, error }, { data: pendingRequests, error: pendingError }] = await Promise.all([
+            sb
+            .from('help_requests')
+            .select('id, title, category, target_amount, collected_amount, status, deadline, created_at')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false }),
+            sb
+                .from('help_requests')
+                .select('id')
+                .eq('user_id', userId)
+                .eq('status', 'Pending')
+        ]);
+
+        if (error) throw error;
+        if (pendingError) throw pendingError;
+        if (window.currentUser?.id !== userId) return;
+
+        const pendingButton = $('#viewMyPendingHelpBtn');
+        if (pendingButton) {
+            pendingButton.style.display = pendingRequests?.length ? 'inline-flex' : 'none';
+            pendingButton.textContent = pendingRequests?.length > 1
+                ? 'View My Pending Requests'
+                : 'View My Pending Request';
+        }
+        list.classList.toggle('has-overflow', (data?.length || 0) > 3);
+
+        if (!data || !data.length) {
+            list.replaceChildren();
+            section.style.display = 'none';
+            return;
+        }
+
+        let proofRows = [];
+        if (proofReferenceSchemaAvailable !== false) {
+            const proofResult = await sb
+                .from('help_requests')
+                .select('id, proof_path')
+                .eq('user_id', userId)
+                .not('proof_path', 'is', null);
+            if (proofResult.error) {
+                proofReferenceSchemaAvailable = false;
+                console.warn('Proof references are unavailable until the proof_path migration is applied:', proofResult.error);
+            } else {
+                proofReferenceSchemaAvailable = true;
+                proofRows = proofResult.data || [];
+            }
+        }
+        const proofPaths = new Map(proofRows.map(row => [row.id, row.proof_path]));
+
+        section.style.display = 'block';
+        list.replaceChildren();
+        data.forEach(r => {
+            const row = document.createElement('div');
+            row.className = 'my-help-request-item';
+
+            const normalizedStatus = String(r.status || '').toLowerCase();
+            const statusText = normalizedStatus === 'verified'
+                ? 'Verified'
+                : normalizedStatus === 'rejected'
+                    ? 'Rejected'
+                    : normalizedStatus === 'pending' || normalizedStatus === 'proof required'
+                        ? 'Pending Verification'
+                        : r.status || 'Pending Verification';
+            const statusClass = normalizedStatus === 'verified'
+                ? 'confirmed'
+                : normalizedStatus === 'rejected'
+                    ? 'warning'
+                    : 'pending';
+            const category = HELP_CATEGORY_LABELS[String(r.category || '').toLowerCase()] || r.category || 'Help Request';
+            const target = Number(r.target_amount || 0);
+
+            const details = document.createElement('div');
+            details.className = 'my-help-request-details';
+            const title = document.createElement('strong');
+            title.className = 'my-help-request-title';
+            title.textContent = r.title || 'Help Request';
+            const summary = document.createElement('span');
+            summary.className = 'my-help-request-summary';
+            summary.textContent = `${category} · ₹${target.toLocaleString('en-IN')} target`;
+            details.append(title, summary);
+
+            const statusAndDate = document.createElement('div');
+            statusAndDate.className = 'my-help-request-status';
+            const status = document.createElement('span');
+            status.className = `status-badge ${statusClass}`.trim();
+            status.textContent = statusText;
+            statusAndDate.appendChild(status);
+
+            if (r.created_at) {
+                const submitted = document.createElement('small');
+                submitted.className = 'my-help-request-date';
+                submitted.textContent = `Submitted ${new Date(r.created_at).toLocaleDateString('en-GB')}`;
+                statusAndDate.appendChild(submitted);
+            }
+
+            row.append(details, statusAndDate);
+
+            const proofPath = proofPaths.get(r.id);
+            if (proofPath) {
+                sb.storage.from(HELP_PROOF_BUCKET).createSignedUrl(proofPath, 3600)
+                    .then(({ data: signed, error: signedError }) => {
+                        if (signedError) {
+                            console.error('Unable to create an owner-only proof link:', signedError);
+                            return;
+                        }
+                        if (!signed?.signedUrl || !row.isConnected) return;
+                        const proofLink = document.createElement('a');
+                        proofLink.href = signed.signedUrl;
+                        proofLink.target = '_blank';
+                        proofLink.rel = 'noopener noreferrer';
+                        proofLink.textContent = 'View attached proof (link expires in 1 hour)';
+                        proofLink.className = 'my-help-request-proof';
+                        details.appendChild(proofLink);
+                    })
+                    .catch(error => console.error('Unable to create an owner-only proof link:', error));
+            }
+            list.appendChild(row);
+        });
+    } catch (error) {
+        console.error('Help request load failed:', error);
+        if (window.currentUser?.id !== userId) return;
+        section.style.display = 'block';
+        list.replaceChildren();
+        const message = document.createElement('p');
+        message.style.cssText = 'color: var(--text-secondary); font-size: 14px;';
+        message.textContent = 'Unable to load your requests.';
+        const retry = document.createElement('button');
+        retry.type = 'button';
+        retry.className = 'text-link';
+        retry.textContent = 'Retry';
+        retry.addEventListener('click', loadMyHelpRequests);
+        list.append(message, retry);
+        const pendingButton = $('#viewMyPendingHelpBtn');
+        if (pendingButton) pendingButton.style.display = 'none';
     }
 }
 
@@ -1317,28 +2167,33 @@ $$('[data-share]').forEach(btn => {
 });
 
 // Help request submission
-$('#createHelpBtn')?.addEventListener('click', () => openModal('#helpOverlay', $('#createHelpBtn')));
-$('#bottomHelpBtn')?.addEventListener('click', () => openModal('#helpOverlay', $('#bottomHelpBtn')));
-
 $('#submitHelpBtn')?.addEventListener('click', async () => {
-    const title = $('#helpTitle')?.value.trim();
-    const story = $('#helpStory')?.value.trim();
-    const amount = Number($('#helpAmount')?.value);
-    const category = $('#helpCategory')?.value || 'assistance';
+    const titleField = $('#helpTitle');
+    const storyField = $('#helpStory');
+    const amountField = $('#helpAmount');
+    const title = titleField?.value.trim() || '';
+    const story = storyField?.value.trim() || '';
+    const amount = Number(amountField?.value);
+    const category = selectedHelpCategory;
 
-    if (!title) {
-        showToast('Please enter a request title.');
-        $('#helpTitle')?.focus();
+    const titleValid = setFieldValidation(titleField, Boolean(title), 'Enter a title for your request.');
+    const storyValid = setFieldValidation(storyField, Boolean(story), 'Describe the situation and how the funds will be used.');
+    const amountValid = setFieldValidation(amountField, Number.isFinite(amount) && amount >= 500, 'Enter a target amount of at least ₹500.');
+
+    if (!titleValid) {
+        titleField?.focus();
         return;
     }
-    if (!story) {
-        showToast('Please describe the situation.');
-        $('#helpStory')?.focus();
+    if (!storyValid) {
+        storyField?.focus();
         return;
     }
-    if (!amount || amount < 500) {
-        showToast('Please enter a valid target amount.');
-        $('#helpAmount')?.focus();
+    if (!amountValid) {
+        amountField?.focus();
+        return;
+    }
+    if (!category) {
+        showToast('Select a help category before submitting.');
         return;
     }
 
@@ -1346,9 +2201,10 @@ $('#submitHelpBtn')?.addEventListener('click', async () => {
         sessionStorage.setItem('pendingHelpRequest', JSON.stringify({
             data: {
                 title: $('#helpTitle')?.value || '',
-                category: $('#helpCategory')?.value || 'assistance',
+                category,
                 story: $('#helpStory')?.value || '',
-                amount: $('#helpAmount')?.value || ''
+                amount: $('#helpAmount')?.value || '',
+                entryContext
             }
         }));
         showToast('Please sign in to submit a help request.');
@@ -1357,59 +2213,127 @@ $('#submitHelpBtn')?.addEventListener('click', async () => {
         return;
     }
 
+    if (selectedHelpProofFile && !selectedHelpProofPath) {
+        showToast('Wait for the proof upload to complete, then submit again.');
+        return;
+    }
+
     const btn = $('#submitHelpBtn');
     btn.disabled = true;
     btn.textContent = 'Submitting…';
 
-    const { error } = await sb.from('help_requests').insert({
+    const requestPayload = {
         user_id: window.currentUser.id,
         title,
         story,
         category,
         target_amount: amount,
         status: 'Pending'
-    });
+    };
+    if (selectedHelpProofPath) requestPayload.proof_path = selectedHelpProofPath;
+
+    const { error } = await sb.from('help_requests').insert(requestPayload);
 
     btn.disabled = false;
     btn.textContent = 'Submit for Verification';
 
     if (error) {
+        console.error('Help Request submission failed:', error);
         showToast('Failed to submit request. Please try again.');
         return;
     }
 
     sessionStorage.removeItem('pendingHelpRequest');
-    showToast('Verification submitted! Your request will be reviewed within 24 hours.');
+    showToast('Help Request submitted for verification. Status: Pending Verification.');
     closeModal();
     $('#helpTitle') && ($('#helpTitle').value = '');
     $('#helpStory') && ($('#helpStory').value = '');
     $('#helpAmount') && ($('#helpAmount').value = '');
+    selectedHelpProofFile = null;
+    selectedHelpProofPath = null;
+    if ($('#helpProofFile')) $('#helpProofFile').value = '';
+    if ($('#helpProofFileName')) $('#helpProofFileName').textContent = '';
+    if (typeof loadMyHelpRequests === 'function') loadMyHelpRequests();
+    if (typeof loadHelpRequests === 'function') loadHelpRequests();
 });
+
+let helpRequestsLoadVersion = 0;
 
 // Load verified help requests from Supabase
 async function loadHelpRequests() {
     const grid = $('.request-grid');
     if (!grid) return;
+    const loadVersion = ++helpRequestsLoadVersion;
+    const verifiedCount = $('#communityVerifiedCount');
+    const raisedTotal = $('#communityRaisedTotal');
+    const supportCount = $('#communitySupportCount');
+    grid.innerHTML = '<article class="request" style="grid-column: 1 / -1; padding: 24px; text-align: center; color: var(--text-secondary);">Loading verified requests...</article>';
+    if (verifiedCount) verifiedCount.textContent = '…';
+    if (supportCount) supportCount.textContent = '…';
+    if (raisedTotal) raisedTotal.textContent = '…';
 
-    const { data: requests, error } = await sb
-        .from('help_requests')
-        .select('id, user_id, title, category, story, target_amount, collected_amount, status, deadline')
-        .eq('status', 'Verified')
-        .order('created_at', { ascending: false });
+    let requests;
+    try {
+        const { data, error } = await sb
+            .from('help_requests')
+            .select('id, user_id, title, category, story, target_amount, collected_amount, status, deadline')
+            .eq('status', 'Verified')
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        requests = data || [];
+        if (loadVersion !== helpRequestsLoadVersion) return;
+    } catch (error) {
+        console.error('Failed to load verified help requests:', error);
+        if (loadVersion !== helpRequestsLoadVersion) return;
+        if (verifiedCount) verifiedCount.textContent = '—';
+        if (supportCount) supportCount.textContent = '—';
+        if (raisedTotal) raisedTotal.textContent = '—';
+        grid.innerHTML = '<article class="request" style="grid-column: 1 / -1; padding: 24px; text-align: center; color: var(--text-secondary);">Unable to load verified requests.</article>';
+        const retryCard = grid.firstElementChild;
+        const retry = document.createElement('button');
+        retry.type = 'button';
+        retry.className = 'btn small';
+        retry.textContent = 'Retry';
+        retry.addEventListener('click', loadHelpRequests);
+        retryCard?.appendChild(retry);
+        grid.style.visibility = 'visible';
+        return;
+    }
 
-    if (error || !requests?.length) return; // keep static demo cards
+    const raised = requests.reduce((sum, r) => sum + Number(r.collected_amount || 0), 0);
+    const verifiedCountText = requests.length.toLocaleString('en-IN');
+    if (verifiedCount) verifiedCount.textContent = verifiedCountText;
+    if (supportCount) supportCount.textContent = verifiedCountText;
+    if (raisedTotal) {
+        raisedTotal.textContent = raised >= 100000
+            ? '₹' + (raised / 100000).toFixed(1) + 'L'
+            : '₹' + raised.toLocaleString('en-IN');
+    }
+
+    if (!requests.length) {
+        grid.innerHTML = '<article class="request" style="grid-column: 1 / -1; padding: 24px; text-align: center; color: var(--text-secondary);">No verified requests yet.</article>';
+        grid.style.visibility = 'visible';
+        restorePendingHelpContribution(requests);
+        return;
+    }
 
     // Get pending contributions for requests owned by current user
     const userRequestIds = window.currentUser ? requests.filter(r => r.user_id === window.currentUser.id).map(r => r.id) : [];
     let pendingContributions = [];
     if (userRequestIds.length > 0) {
-        const { data: pending } = await sb
-            .from('contributions')
-            .select('id, help_request_id, amount, payment_method, status')
-            .in('help_request_id', userRequestIds)
-            .eq('status', 'Pending');
-        if (pending) pendingContributions = pending;
+        try {
+            const { data: pending, error: pendingError } = await sb
+                .from('contributions')
+                .select('id, help_request_id, amount, payment_method, status')
+                .in('help_request_id', userRequestIds)
+                .eq('status', 'Pending');
+            if (pendingError) throw pendingError;
+            if (pending) pendingContributions = pending;
+        } catch (error) {
+            console.error('Failed to load pending Help Request contributions:', error);
+        }
     }
+    if (loadVersion !== helpRequestsLoadVersion) return;
 
     grid.innerHTML = '';
     requests.forEach(r => {
@@ -1459,15 +2383,16 @@ async function loadHelpRequests() {
         `;
         grid.appendChild(article);
     });
+    grid.style.visibility = 'visible';
 
     // Re-bind contribute/share on new cards
     $$('[data-contribute]').forEach(btn => {
         btn.onclick = () => {
-            currentContributeGoalId = btn.dataset.contributeId || null;
-            currentContributeHelpId = btn.dataset.helpId || null;
-            const titleEl = $('#contributionGoal');
-            if (titleEl) titleEl.textContent = btn.dataset.contribute || 'Goal';
-            openModal('#contributionOverlay', btn);
+            openHelpContribution(
+                btn.dataset.helpId,
+                btn.dataset.contribute || 'Help Someone',
+                btn
+            );
         };
     });
     $$('[data-share]').forEach(btn => {
@@ -1499,11 +2424,52 @@ async function loadHelpRequests() {
             loadHelpRequests(); // Refresh
         };
     });
+    restorePendingHelpContribution(requests);
 }
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 
 window.currentUser = null;
+let authResolved = false;
+let helpRequestRealtimeChannel = null;
+let helpRequestRefreshInterval = null;
+let helpRequestRefreshTimeout = null;
+
+function startHelpRequestUpdates() {
+    if (!$('.request-grid')) return;
+
+    if (!helpRequestRealtimeChannel) {
+        try {
+            helpRequestRealtimeChannel = sb
+                .channel('public-help-request-updates')
+                .on('postgres_changes', {
+                    event: '*',
+                    schema: 'public',
+                    table: 'help_requests'
+                }, () => {
+                    clearTimeout(helpRequestRefreshTimeout);
+                    helpRequestRefreshTimeout = setTimeout(() => {
+                        loadHelpRequests();
+                        loadMyHelpRequests();
+                    }, 300);
+                })
+                .subscribe(status => {
+                    if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                        console.warn('Help Request Realtime is unavailable; periodic refresh remains active.');
+                    }
+                });
+        } catch (error) {
+            console.warn('Help Request Realtime could not be started; periodic refresh remains active.', error);
+        }
+    }
+
+    if (!helpRequestRefreshInterval) {
+        helpRequestRefreshInterval = setInterval(() => {
+            loadHelpRequests();
+            loadMyHelpRequests();
+        }, 30000);
+    }
+}
 
 function updateAuthUI() {
     const user = window.currentUser;
@@ -1584,6 +2550,16 @@ $$('.google-btn:not(#step5Next)').forEach(btn => {
 sb.auth.onAuthStateChange((_event, session) => {
     window.currentUser = session?.user ?? null;
     updateAuthUI();
+    if (!authResolved) return;
+    if (_event === 'SIGNED_OUT') {
+        renderLoggedOutGoals();
+        loadMyHelpRequests();
+    } else if (_event === 'SIGNED_IN') {
+        if ($('#mainGoalTitle')) loadMyGoals();
+        loadMyHelpRequests();
+        loadNotifications();
+        if ($('.request-grid')) loadHelpRequests();
+    }
 });
 
 // Deep link join flow for Private Invitations
@@ -1606,17 +2582,17 @@ async function handleDeepLinkJoin() {
 
     // Call the secure database RPC to process acceptance
 
-    const { error } = await sb.rpc('accept_goal_invitation', { invite_token: inviteToken });
+    const { error } = await sb.rpc('join_goal_with_reusable_invite', { invite_token: inviteToken });
 
     if (error) {
         console.error("Invitation acceptance failed:", error);
 
-        // Handle specific RPC error messages elegantly
-        if (error.message.includes('match logged-in user')) {
-            showToast('This invitation is for a different email address. Please sign in with the invited account.');
+        if (error.message.includes('Invalid invitation token')) {
+            showToast('This invitation link is invalid.');
+            window.history.replaceState({}, '', window.location.pathname);
         } else {
-            showToast('This invitation is invalid or has already been accepted.');
-            window.history.replaceState({}, '', window.location.pathname); 
+            showToast('Unable to use this invitation. Please check the link and try again.');
+            window.history.replaceState({}, '', window.location.pathname);
         }
         return;
     }
@@ -1700,27 +2676,26 @@ function restorePendingCreateGoal() {
         const state = JSON.parse(saved);
         if (state && state.data) {
             Object.assign(goalData, state.data);
+            goalData.visibility = 'Private';
+            entryContext = goalData.entryContext || getPageEntryContext();
+            creationType = 'PERSONAL_GOAL';
+            goalData.creationType = creationType;
+            selectedCreationCategory = goalData.isCustomOccasion || goalData.customOccasion ? 'Custom' : goalData.occasion;
+            renderCreationCategories();
 
             // Re-populate DOM inputs
-            const customWrap = $('#customCategoryWrap');
             const customOccasionInput = $('#customOccasionInput');
-            if (goalData.occasion === 'Custom') {
-                if (customWrap) customWrap.style.display = 'block';
-                if (customOccasionInput) customOccasionInput.value = goalData.customOccasion || '';
-            }
-
-            $$('#step1Choices button').forEach(b => b.classList.toggle('selected', b.dataset.value === goalData.occasion));
+            if (customOccasionInput) customOccasionInput.value = goalData.customOccasion || '';
             if ($('#goalName')) $('#goalName').value = goalData.name || '';
             if ($('#goalDesc')) $('#goalDesc').value = goalData.description || '';
             if ($('#goalAmount')) $('#goalAmount').value = goalData.target || '';
             if ($('#goalDeadline')) $('#goalDeadline').value = goalData.deadline || '';
 
             $$('#styleChoices button').forEach(b => b.classList.toggle('selected', b.dataset.value === goalData.style));
-            $$('#visibilityChoices button').forEach(b => b.classList.toggle('selected', b.dataset.value === goalData.visibility));
 
             updateReviewScreen();
 
-            const nextStep = goalData.visibility === 'Public' ? 7 : 6;
+            const nextStep = 6;
             currentStep = nextStep;
 
             openModal('#createGoalOverlay');
@@ -1731,6 +2706,30 @@ function restorePendingCreateGoal() {
     }
 }
 
+function restorePendingHelpRequestSelection() {
+    const saved = sessionStorage.getItem('pendingHelpRequestSelection');
+    if (!saved || !$('#helpOverlay')) return;
+    try {
+        const state = JSON.parse(saved);
+        selectedHelpCategory = state.category || 'assistance';
+        entryContext = state.entryContext || 'HOME';
+        goalData.entryContext = entryContext;
+        creationType = 'HELP_SOMEONE';
+        goalData.creationType = creationType;
+        selectedCreationCategory = state.selectedCreationCategory || 'education';
+        renderCreationCategories();
+        if (selectedCreationCategory === 'custom' && $('#customHelpCategoryInput')) {
+            $('#customHelpCategoryInput').value = state.customCategory || selectedHelpCategory;
+        }
+        sessionStorage.removeItem('pendingHelpRequestSelection');
+        updateHelpCategoryLabel();
+        if ($('#helpRequestStepLabel')) $('#helpRequestStepLabel').textContent = 'Step 3 of 3';
+        openModal('#helpOverlay');
+    } catch (e) {
+        console.error('Failed to restore selected Help Someone category', e);
+    }
+}
+
 function restorePendingHelpRequest() {
     const saved = sessionStorage.getItem('pendingHelpRequest');
     if (!saved) return;
@@ -1738,7 +2737,13 @@ function restorePendingHelpRequest() {
         const state = JSON.parse(saved);
         if (state && state.data) {
             if ($('#helpTitle')) $('#helpTitle').value = state.data.title ?? '';
-            if ($('#helpCategory')) $('#helpCategory').value = state.data.category ?? 'assistance';
+            selectedHelpCategory = state.data.category ?? 'assistance';
+            entryContext = state.data.entryContext || getPageEntryContext();
+            goalData.entryContext = entryContext;
+            creationType = 'HELP_SOMEONE';
+            goalData.creationType = creationType;
+            updateHelpCategoryLabel();
+            if ($('#helpRequestStepLabel')) $('#helpRequestStepLabel').textContent = 'Step 3 of 3';
             if ($('#helpStory')) $('#helpStory').value = state.data.story ?? '';
             if ($('#helpAmount')) $('#helpAmount').value = state.data.amount ?? '';
 
@@ -1749,18 +2754,35 @@ function restorePendingHelpRequest() {
     }
 }
 
-// Bootstrap on page load
-sb.auth.getSession().then(({ data: { session } }) => {
-    window.currentUser = session?.user ?? null;
-    updateAuthUI();
+// Bootstrap only after Supabase resolves the initial session.
+async function initializeApp() {
+    try {
+        const { data: { session }, error } = await sb.auth.getSession();
+        if (error) throw error;
+        window.currentUser = session?.user ?? null;
+        authResolved = true;
+        resolveAuthReady();
+        updateAuthUI();
 
-    handleDeepLinkJoin();
+        handleDeepLinkJoin();
 
-    if (session) {
-        restorePendingCreateGoal();
-        restorePendingHelpRequest();
-        loadNotifications();
+        if (session) {
+            restorePendingCreateGoal();
+            restorePendingHelpRequest();
+            loadNotifications();
+        }
+        restorePendingHelpRequestSelection();
+        if ($('#mainGoalTitle')) loadMyGoals();
+        if ($('.request-grid')) {
+            loadHelpRequests();
+            loadMyHelpRequests();
+            startHelpRequestUpdates();
+        }
+    } catch (error) {
+        console.error('Unable to resolve the initial Supabase session:', error);
+        resolveAuthReady();
+        if ($('#mainGoalTitle')) setGoalsPageState('error', 'Unable to verify your sign-in status. Please retry.');
+        if ($('.request-grid')) loadHelpRequests();
     }
-    if ($('#mainGoalTitle')) loadMyGoals();
-    if ($('.request-grid')) loadHelpRequests();
-});
+}
+initializeApp();

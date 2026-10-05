@@ -53,6 +53,30 @@ function supabaseRequest($url, $key, $method = "GET", $data = null) {
     return json_decode($response, true);
 }
 
+function createHelpProofSignedUrl($supabaseUrl, $supabaseKey, $path) {
+    $encodedPath = implode(
+        "/",
+        array_map("rawurlencode", explode("/", $path))
+    );
+    $result = supabaseRequest(
+        rtrim($supabaseUrl, "/") .
+        "/storage/v1/object/sign/help-request-proofs/" .
+        $encodedPath,
+        $supabaseKey,
+        "POST",
+        ["expiresIn" => 900]
+    );
+
+    if (!is_array($result) || empty($result["signedURL"])) {
+        return null;
+    }
+
+    $signedUrl = $result["signedURL"];
+    return str_starts_with($signedUrl, "http")
+        ? $signedUrl
+        : rtrim($supabaseUrl, "/") . "/" . ltrim($signedUrl, "/");
+}
+
 if (isset($_GET["logout"])) {
 
     session_destroy();
@@ -226,6 +250,15 @@ $requests = supabaseRequest(
 if (!is_array($requests) || isset($requests['message']) || isset($requests['error'])) {
     $requests = [];
 }
+
+foreach ($requests as &$request) {
+    $proofPath = $request["proof_path"] ?? "";
+    $request["proof_signed_url"] = $proofPath !== ""
+        ? createHelpProofSignedUrl($supabaseUrl, $supabaseKey, $proofPath)
+        : null;
+    unset($request["proof_path"]);
+}
+unset($request);
 
 ?>
 
@@ -411,6 +444,19 @@ if (!is_array($requests) || isset($requests['message']) || isset($requests['erro
 
             <span id="reviewAmount"></span>
 
+            <strong>
+                Supporting document
+            </strong>
+
+            <span>
+                <a id="reviewProofLink" target="_blank" rel="noopener noreferrer" style="display: none;">
+                    Open private proof (link expires in 15 minutes)
+                </a>
+                <span id="reviewProofUnavailable" style="display: none;">
+                    No proof document is attached or an admin Storage link is unavailable.
+                </span>
+            </span>
+
         </div>
 
         <form method="post">
@@ -482,6 +528,16 @@ function openReview(request) {
         Number(
             request.target_amount || 0
         ).toLocaleString("en-IN");
+
+    const proofLink = document.getElementById("reviewProofLink");
+    const proofUnavailable = document.getElementById("reviewProofUnavailable");
+    proofLink.style.display = request.proof_signed_url ? "inline" : "none";
+    proofUnavailable.style.display = request.proof_signed_url ? "none" : "inline";
+    if (request.proof_signed_url) {
+        proofLink.href = request.proof_signed_url;
+    } else {
+        proofLink.removeAttribute("href");
+    }
 
     document.getElementById(
         "reviewModal"
