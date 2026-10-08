@@ -209,6 +209,7 @@ let selectedCreationCategory = 'Birthday';
 let selectedHelpCategory = 'assistance';
 let selectedHelpProofFile = null;
 let selectedHelpProofPath = null;
+let selectedHelpCreatorQrPath = null;
 
 const PERSONAL_GOAL_OPTIONS = [
     { value: 'Birthday', label: '🎂 Birthday', detail: 'Gifts, parties, celebrations' },
@@ -234,6 +235,7 @@ const HELP_CATEGORY_LABELS = {
 };
 const HELP_PROOF_BUCKET = 'help-request-proofs';
 const HELP_PROOF_MAX_SIZE = 10 * 1024 * 1024;
+const GOAL_PAYMENT_QR_BUCKET = 'goal-payment-qr';
 let proofReferenceSchemaAvailable = null;
 const goalData = {
     occasion: 'Birthday',
@@ -253,6 +255,95 @@ let activeGoalId = null;
 let currentContributeSplitStyle = 'Custom amounts';
 let currentContributeFixedAmount = null;
 let currentContributeRemaining = null;
+let currentContributionPaymentDetails = { upiId: '', qrPath: '', recipient: 'creator' };
+let contributionDetailsVersion = 0;
+
+function setContributionPaymentDetails(upiId = '', qrPath = '', recipient = 'creator') {
+    currentContributionPaymentDetails = { upiId: upiId || '', qrPath: qrPath || '', recipient };
+    refreshContributionPaymentDetails();
+}
+
+function refreshContributionPaymentDetails() {
+    const containers = Array.from(document.querySelectorAll('.contribution-payment-details'));
+    if (!containers.length) return;
+
+    const version = ++contributionDetailsVersion;
+    const amount = Number($('#contributionAmount')?.value || 0);
+    const amountText = Number.isFinite(amount) && amount > 0
+        ? `₹${amount.toLocaleString('en-IN')}`
+        : 'the amount entered above';
+    const paymentMethod = $('.payments button.active')?.textContent?.trim() || 'UPI';
+    const { upiId, qrPath, recipient } = currentContributionPaymentDetails;
+
+    containers.forEach(container => {
+        container.replaceChildren();
+
+        const message = document.createElement('p');
+        message.style.margin = '0';
+
+        if (paymentMethod !== 'UPI') {
+            message.style.color = 'var(--text-secondary)';
+            message.textContent = 'Cash contribution selected. Submit the contribution for confirmation.';
+            container.appendChild(message);
+            return;
+        }
+
+        if (!upiId && !qrPath) {
+            message.style.color = 'var(--text-secondary)';
+            message.textContent = recipient === 'request owner'
+                ? 'Payment details have not been added by the request owner yet.'
+                : 'Payment details have not been added by the creator yet.';
+            container.appendChild(message);
+            return;
+        }
+
+        message.textContent = `Pay ${amountText} directly to the ${recipient} using these UPI details. After paying, submit this contribution for confirmation.`;
+        container.appendChild(message);
+
+        if (upiId) {
+            const upi = document.createElement('p');
+            upi.style.margin = '8px 0 0';
+            const label = document.createElement('strong');
+            label.textContent = 'UPI ID: ';
+            upi.append(label, document.createTextNode(upiId));
+            container.appendChild(upi);
+        }
+
+        if (qrPath) {
+            const qrLabel = document.createElement('p');
+            qrLabel.style.margin = '8px 0 0';
+            qrLabel.textContent = 'UPI QR:';
+            container.appendChild(qrLabel);
+
+            const qrStatus = document.createElement('p');
+            qrStatus.style.margin = '4px 0 0';
+            qrStatus.style.color = 'var(--text-secondary)';
+            qrStatus.textContent = 'Loading QR…';
+            container.appendChild(qrStatus);
+
+            sb.storage.from(GOAL_PAYMENT_QR_BUCKET).createSignedUrl(qrPath, 3600)
+                .then(({ data, error }) => {
+                    if (version !== contributionDetailsVersion || !container.isConnected) return;
+                    if (error || !data?.signedUrl) {
+                        console.error('Unable to create a signed UPI QR link:', error);
+                        qrStatus.textContent = 'QR unavailable right now.';
+                        return;
+                    }
+
+                    const image = document.createElement('img');
+                    image.src = data.signedUrl;
+                    image.alt = 'UPI QR code';
+                    image.style.cssText = 'display: block; max-width: 180px; max-height: 180px; border-radius: 10px; border: 1px solid var(--line); margin-top: 6px;';
+                    qrStatus.replaceWith(image);
+                })
+                .catch(error => {
+                    if (version !== contributionDetailsVersion || !container.isConnected) return;
+                    console.error('Unable to create a signed UPI QR link:', error);
+                    qrStatus.textContent = 'QR unavailable right now.';
+                });
+        }
+    });
+}
 
 function getGoalContributionStyle(goal) {
     const storedStyle = goal.rawGoal.contribution_style || goal.rawGoal.split_type;
@@ -294,6 +385,12 @@ function configureGoalContribution(goal) {
             button.disabled = Number(button.dataset.amount) > remaining;
         });
     }
+
+    setContributionPaymentDetails(
+        goal.rawGoal?.creator_upi_id,
+        goal.rawGoal?.creator_qr_path,
+        'creator'
+    );
 }
 
 function calculateEqualSplit(targetAmount, memberCount) {
@@ -456,8 +553,13 @@ function startCreationFlow(context, triggerEl, presetCategory = '') {
     goalData.helpCategory = 'assistance';
     selectedHelpProofFile = null;
     selectedHelpProofPath = null;
+    selectedHelpCreatorQrPath = null;
     if ($('#helpProofFile')) $('#helpProofFile').value = '';
     if ($('#helpProofFileName')) $('#helpProofFileName').textContent = '';
+    if ($('#helpCreatorUpiId')) $('#helpCreatorUpiId').value = '';
+    if ($('#helpCreatorQrInput')) $('#helpCreatorQrInput').value = '';
+    if ($('#helpCreatorQrName')) $('#helpCreatorQrName').textContent = 'No QR uploaded yet.';
+    if ($('#removeHelpCreatorQrBtn')) $('#removeHelpCreatorQrBtn').style.display = 'none';
     if ($('#customOccasionInput')) $('#customOccasionInput').value = '';
     if ($('#customHelpCategoryInput')) $('#customHelpCategoryInput').value = '';
     selectedCreationCategory = categoryPreset || (creationType === 'HELP_SOMEONE' ? 'education' : 'Birthday');
@@ -521,6 +623,75 @@ $('#viewMyPendingHelpBtn')?.addEventListener('click', () => {
 
 $('#attachHelpProofBtn')?.addEventListener('click', () => {
     $('#helpProofFile')?.click();
+});
+
+$('#attachHelpCreatorQrBtn')?.addEventListener('click', () => {
+    $('#helpCreatorQrInput')?.click();
+});
+
+$('#helpCreatorQrInput')?.addEventListener('change', async event => {
+    const input = event.currentTarget;
+    const file = input.files?.[0] || null;
+    const name = $('#helpCreatorQrName');
+    if (!file) {
+        selectedHelpCreatorQrPath = null;
+        if (name) name.textContent = 'No QR uploaded yet.';
+        return;
+    }
+
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+        input.value = '';
+        selectedHelpCreatorQrPath = null;
+        if (name) name.textContent = 'No QR uploaded yet.';
+        showToast('UPI QR must be a PNG, JPG, or WebP image.');
+        return;
+    }
+    if (!file.size || file.size > 2 * 1024 * 1024) {
+        input.value = '';
+        selectedHelpCreatorQrPath = null;
+        if (name) name.textContent = 'No QR uploaded yet.';
+        showToast('UPI QR must be under 2 MB.');
+        return;
+    }
+    if (!window.currentUser) {
+        input.value = '';
+        selectedHelpCreatorQrPath = null;
+        if (name) name.textContent = 'Sign in before uploading this QR.';
+        showToast('Please sign in before uploading a UPI QR.');
+        return;
+    }
+
+    const attachButton = $('#attachHelpCreatorQrBtn');
+    if (attachButton) attachButton.disabled = true;
+    if (name) name.textContent = `Uploading ${file.name}…`;
+    try {
+        const fileExt = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' }[file.type];
+        const objectPath = `help-creator-qr/${window.currentUser.id}/${crypto.randomUUID()}.${fileExt}`;
+        const { data, error } = await sb.storage
+            .from(GOAL_PAYMENT_QR_BUCKET)
+            .upload(objectPath, file, { contentType: file.type, upsert: false });
+        if (error) throw error;
+
+        selectedHelpCreatorQrPath = data.path;
+        if (name) name.textContent = `${file.name} · Uploaded`;
+        const removeButton = $('#removeHelpCreatorQrBtn');
+        if (removeButton) removeButton.style.display = '';
+    } catch (error) {
+        console.error('Help request UPI QR upload failed:', error);
+        selectedHelpCreatorQrPath = null;
+        input.value = '';
+        if (name) name.textContent = 'Upload failed. Select the file again after Storage is configured.';
+        showToast('Unable to upload UPI QR. Check the private Storage bucket and its access policies.');
+    } finally {
+        if (attachButton) attachButton.disabled = false;
+    }
+});
+
+$('#removeHelpCreatorQrBtn')?.addEventListener('click', () => {
+    selectedHelpCreatorQrPath = null;
+    if ($('#helpCreatorQrInput')) $('#helpCreatorQrInput').value = '';
+    if ($('#helpCreatorQrName')) $('#helpCreatorQrName').textContent = 'No QR uploaded yet.';
+    if ($('#removeHelpCreatorQrBtn')) $('#removeHelpCreatorQrBtn').style.display = 'none';
 });
 
 $('#helpProofFile')?.addEventListener('change', async event => {
@@ -726,6 +897,41 @@ $('#step4Next')?.addEventListener('click', () => {
     goToStep(editingFromReview ? 6 : 5);
 });
 
+$('#attachCreatorQrBtn')?.addEventListener('click', () => $('#creatorQrInput')?.click());
+
+$('#creatorQrInput')?.addEventListener('change', event => {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    const name = $('#creatorQrName');
+    if (!file) return;
+
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+        showToast('UPI QR must be a PNG, JPG, or WebP image.');
+        input.value = '';
+        if (name) name.textContent = 'No QR uploaded yet.';
+        return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+        showToast('UPI QR must be under 2 MB.');
+        input.value = '';
+        if (name) name.textContent = 'No QR uploaded yet.';
+        return;
+    }
+
+    if (name) name.textContent = file.name;
+    const removeButton = $('#removeCreatorQrBtn');
+    if (removeButton) removeButton.style.display = '';
+});
+
+$('#removeCreatorQrBtn')?.addEventListener('click', () => {
+    const input = $('#creatorQrInput');
+    if (input) input.value = '';
+    const name = $('#creatorQrName');
+    if (name) name.textContent = 'No QR uploaded yet.';
+    const removeButton = $('#removeCreatorQrBtn');
+    if (removeButton) removeButton.style.display = 'none';
+});
+
 // Step 5: Creator authentication — requires real Google session
 $('#step5Next')?.addEventListener('click', () => {
     if (!window.currentUser) {
@@ -761,6 +967,44 @@ $('#finishGoalBtn')?.addEventListener('click', async () => {
     btn.disabled = true;
     btn.textContent = 'Creating…';
 
+    const creatorUpiId = ($('#creatorUpiId')?.value || '').trim();
+    const creatorQrFile = $('#creatorQrInput')?.files?.[0] || null;
+    let creatorQrPath = null;
+
+    if (creatorQrFile) {
+        const allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
+        if (!allowedTypes.includes(creatorQrFile.type)) {
+            showToast('UPI QR must be a PNG, JPG, or WebP image.');
+            btn.disabled = false;
+            btn.textContent = 'Create SharedGoal';
+            return;
+        }
+        if (!creatorQrFile.size || creatorQrFile.size > 2 * 1024 * 1024) {
+            showToast('UPI QR must be under 2 MB.');
+            btn.disabled = false;
+            btn.textContent = 'Create SharedGoal';
+            return;
+        }
+
+        const qrBucket = GOAL_PAYMENT_QR_BUCKET;
+        const fileExt = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' }[creatorQrFile.type];
+        const uploadPath = `creator-qr/${window.currentUser.id}/${Date.now()}.${fileExt}`;
+        const { error: uploadError } = await sb.storage.from(qrBucket).upload(uploadPath, creatorQrFile, {
+            upsert: false,
+            contentType: creatorQrFile.type
+        });
+
+        if (uploadError) {
+            console.error('QR upload failed:', uploadError);
+            showToast('Failed to upload your UPI QR image. Please try again.');
+            btn.disabled = false;
+            btn.textContent = 'Create SharedGoal';
+            return;
+        }
+
+        creatorQrPath = uploadPath;
+    }
+
     const { data: goal, error } = await sb
         .from('goals')
         .insert({
@@ -771,7 +1015,9 @@ $('#finishGoalBtn')?.addEventListener('click', async () => {
             target_amount: goalData.target,
             deadline: goalData.deadline,
             is_private: true,
-            status: 'Active'
+            status: 'Active',
+            creator_upi_id: creatorUpiId || null,
+            creator_qr_path: creatorQrPath
         })
         .select('id')
         .single();
@@ -814,6 +1060,9 @@ $('#finishGoalBtn')?.addEventListener('click', async () => {
     }
 
     showToast('🎉 SharedGoal created successfully!');
+    if ($('#creatorQrInput')) $('#creatorQrInput').value = '';
+    if ($('#creatorQrName')) $('#creatorQrName').textContent = 'No QR uploaded yet.';
+    if ($('#removeCreatorQrBtn')) $('#removeCreatorQrBtn').style.display = 'none';
     btn.disabled = false;
     btn.textContent = 'Create SharedGoal';
     closeModal();
@@ -881,6 +1130,19 @@ async function openHelpContribution(helpId, title, triggerElement = null) {
     $$('.quick button').forEach(button => {
         button.disabled = false;
     });
+
+    setContributionPaymentDetails('', '', 'request owner');
+    const { data: request, error: requestError } = await sb
+        .from('help_requests')
+        .select('creator_upi_id, creator_qr_path')
+        .eq('id', helpId)
+        .maybeSingle();
+    if (requestError) {
+        console.error('Unable to load Help Someone payment details:', requestError);
+    } else if (request) {
+        setContributionPaymentDetails(request.creator_upi_id, request.creator_qr_path, 'request owner');
+    }
+
     const titleElement = $('#contributionGoal');
     if (titleElement) titleElement.textContent = title || 'Help Someone';
     openModal('#contributionOverlay', triggerElement);
@@ -942,13 +1204,17 @@ $$('.quick button').forEach(btn => {
     btn.onclick = () => {
         const input = $('#contributionAmount');
         if (input && !input.readOnly) input.value = btn.dataset.amount;
+        refreshContributionPaymentDetails();
     };
 });
+
+$('#contributionAmount')?.addEventListener('input', refreshContributionPaymentDetails);
 
 $$('.payments button').forEach(btn => {
     btn.onclick = () => {
         $$('.payments button').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
+        refreshContributionPaymentDetails();
     };
 });
 
@@ -987,11 +1253,6 @@ $('#makeContributionBtn')?.addEventListener('click', async () => {
     }
 
     const paymentMethod = $('.payments button.active')?.textContent?.trim() || 'UPI';
-
-    if (paymentMethod === 'Razorpay') {
-        showToast('PAYMENT BACKEND BLOCKER: Secure server-side endpoint for Razorpay order creation and signature verification is missing. Cannot process real payment.');
-        return;
-    }
 
     if (!window.currentUser || (!currentContributeGoalId && !currentContributeHelpId)) {
         showToast(`₹${amount.toLocaleString('en-IN')} contribution recorded via ${paymentMethod}.`);
@@ -1674,7 +1935,7 @@ async function loadMyGoals(preferredGoalId = null) {
         const { data: rows, error } = await sb
             .from('goals')
             .select(`
-                id, name, occasion, description, target_amount, deadline, is_private, status, created_at, creator_id
+                id, name, occasion, description, target_amount, deadline, is_private, status, created_at, creator_id, creator_upi_id, creator_qr_path
             `)
             .in('id', goalIds)
             .in('status', ['Active', 'Completed', 'Closed', 'Expired']);
@@ -2175,6 +2436,7 @@ $('#submitHelpBtn')?.addEventListener('click', async () => {
     const story = storyField?.value.trim() || '';
     const amount = Number(amountField?.value);
     const category = selectedHelpCategory;
+    const creatorUpiId = ($('#helpCreatorUpiId')?.value || '').trim();
 
     const titleValid = setFieldValidation(titleField, Boolean(title), 'Enter a title for your request.');
     const storyValid = setFieldValidation(storyField, Boolean(story), 'Describe the situation and how the funds will be used.');
@@ -2204,6 +2466,7 @@ $('#submitHelpBtn')?.addEventListener('click', async () => {
                 category,
                 story: $('#helpStory')?.value || '',
                 amount: $('#helpAmount')?.value || '',
+                creatorUpiId,
                 entryContext
             }
         }));
@@ -2228,7 +2491,9 @@ $('#submitHelpBtn')?.addEventListener('click', async () => {
         story,
         category,
         target_amount: amount,
-        status: 'Pending'
+        status: 'Pending',
+        creator_upi_id: creatorUpiId || null,
+        creator_qr_path: selectedHelpCreatorQrPath
     };
     if (selectedHelpProofPath) requestPayload.proof_path = selectedHelpProofPath;
 
@@ -2249,10 +2514,15 @@ $('#submitHelpBtn')?.addEventListener('click', async () => {
     $('#helpTitle') && ($('#helpTitle').value = '');
     $('#helpStory') && ($('#helpStory').value = '');
     $('#helpAmount') && ($('#helpAmount').value = '');
+    if ($('#helpCreatorUpiId')) $('#helpCreatorUpiId').value = '';
     selectedHelpProofFile = null;
     selectedHelpProofPath = null;
+    selectedHelpCreatorQrPath = null;
     if ($('#helpProofFile')) $('#helpProofFile').value = '';
     if ($('#helpProofFileName')) $('#helpProofFileName').textContent = '';
+    if ($('#helpCreatorQrInput')) $('#helpCreatorQrInput').value = '';
+    if ($('#helpCreatorQrName')) $('#helpCreatorQrName').textContent = 'No QR uploaded yet.';
+    if ($('#removeHelpCreatorQrBtn')) $('#removeHelpCreatorQrBtn').style.display = 'none';
     if (typeof loadMyHelpRequests === 'function') loadMyHelpRequests();
     if (typeof loadHelpRequests === 'function') loadHelpRequests();
 });
@@ -2746,6 +3016,7 @@ function restorePendingHelpRequest() {
             if ($('#helpRequestStepLabel')) $('#helpRequestStepLabel').textContent = 'Step 3 of 3';
             if ($('#helpStory')) $('#helpStory').value = state.data.story ?? '';
             if ($('#helpAmount')) $('#helpAmount').value = state.data.amount ?? '';
+            if ($('#helpCreatorUpiId')) $('#helpCreatorUpiId').value = state.data.creatorUpiId ?? '';
 
             openModal('#helpOverlay');
         }

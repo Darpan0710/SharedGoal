@@ -423,6 +423,7 @@ http://localhost/SharedGoal/admin/admin.php
 ```
 
 Supabase configuration is required for authentication, database operations, and application functionality.
+Before enabling creator UPI details, apply the SQL migration in `supabase/migrations/20261008161700_add_direct_upi_payment_details.sql` to the Supabase project. It adds nullable UPI metadata columns and configures the private QR Storage bucket and access policies.
 
 ---
 

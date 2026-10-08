@@ -318,14 +318,14 @@
                 <button data-amount="2500">₹2,500</button>
                 <button data-amount="5000">₹5,000</button>
             </div>
+            <div class="payment-details-box contribution-payment-details" style="margin-bottom: 16px;"></div>
             <label>Payment Method</label>
             <div class="payments">
                 <button class="active">UPI</button>
-                <button>Razorpay</button>
                 <button>Cash</button>
             </div>
             <button class="btn full" id="makeContributionBtn" style="margin-top: 20px;">
-                Confirm & Pay
+                Confirm payment details
             </button>
         </div>
     </div>
@@ -343,6 +343,15 @@
             <textarea id="helpStory" placeholder="Explain the circumstances, who will benefit, and what the funds will be used for..."></textarea>
             <label>Target amount (₹)</label>
             <input id="helpAmount" type="number" placeholder="₹ 50,000">
+            <label>Creator UPI ID (optional)</label>
+            <input id="helpCreatorUpiId" placeholder="example@upi">
+            <label>UPI QR Code (optional)</label>
+            <input id="helpCreatorQrInput" type="file" accept="image/png,image/jpeg,image/webp" style="display: none;">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 8px 0;">
+                <button type="button" class="btn small ghost" id="attachHelpCreatorQrBtn">Upload UPI QR</button>
+                <button type="button" class="btn small ghost" id="removeHelpCreatorQrBtn" style="display: none;">Remove QR</button>
+            </div>
+            <p id="helpCreatorQrName" style="font-size: 13px; margin: 0 0 12px; color: var(--text-secondary);" aria-live="polite">No QR uploaded yet.</p>
             <label>Supporting Documents / Proof</label>
             <div style="border: 1.5px dashed var(--line); padding: 16px; border-radius: var(--radius-md); background: #fff; text-align: center;">
                 <p style="font-size: 13px; margin-bottom: 8px; color: var(--text-secondary);">Hospital estimate, college fee slip, or utility statement</p>
@@ -369,14 +378,14 @@
                 <button data-amount="2500">₹2,500</button>
                 <button data-amount="5000">₹5,000</button>
             </div>
+            <div class="payment-details-box contribution-payment-details" style="margin-bottom: 16px;"></div>
             <label>Payment Method</label>
             <div class="payments">
                 <button class="active">UPI</button>
-                <button>Razorpay</button>
                 <button>Cash</button>
             </div>
             <button class="btn full" id="makeContributionBtn" style="margin-top: 20px;">
-                Confirm & Pay
+                Confirm payment details
             </button>
         </div>
     </div>

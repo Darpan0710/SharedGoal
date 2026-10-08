@@ -143,7 +143,7 @@
                 </article>
                 <article class="purpose-card">
                     <div class="gift-art">
-                        <span>AI GIFT IDEAS</span>
+                        <span>GROUP GIFT IDEAS</span>
                         <b>What would make them smile?</b>
                         <div class="gift-row">
                             <div class="gift-pill"><span>🎧</span> Sony Audio</div>
@@ -184,7 +184,7 @@
                 <article>
                     <b>03</b>
                     <h3>Contribute</h3>
-                    <p>Track UPI, Razorpay, or manually confirmed cash contributions in real-time.</p>
+                    <p>Track UPI and manually confirmed cash contributions in real-time.</p>
                 </article>
                 <article>
                     <b>04</b>
@@ -243,7 +243,7 @@
                 <details>
                     <summary>How do contributions work?</summary>
                     <p>
-                        Members can contribute using UPI apps (Google Pay, PhonePe, Paytm), digital payment methods,
+                        Members can contribute using UPI apps (Google Pay, PhonePe, Paytm), direct transfers,
                         or recorded cash handoffs that are verified by the goal creator or group admins.
                     </p>
                 </details>
@@ -358,6 +358,17 @@
                         <small>Members contribute as much as they want</small>
                     </button>
                 </div>
+                <div class="payment-details-panel" style="margin-top: 18px; border: 1px solid var(--line); border-radius: var(--radius-md); padding: 16px; background: rgba(255,255,255,0.7);">
+                    <label>Creator UPI ID (optional)</label>
+                    <input id="creatorUpiId" placeholder="example@upi">
+                    <label>UPI QR Code (optional)</label>
+                    <input id="creatorQrInput" type="file" accept="image/png,image/jpeg,image/webp" style="display: none;">
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 10px;">
+                        <button type="button" class="btn small ghost" id="attachCreatorQrBtn">Upload UPI QR</button>
+                        <button type="button" class="btn small ghost" id="removeCreatorQrBtn" style="display: none;">Remove QR</button>
+                    </div>
+                    <p id="creatorQrName" style="margin: 10px 0 0; color: var(--text-secondary); font-size: 13px;">No QR uploaded yet.</p>
+                </div>
                 <p style="margin-top: 16px; color: var(--text-secondary); font-size: 14px;">Only you and invited members can access this goal.</p>
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
                     <button class="btn ghost step-back-btn" style="flex: 1;">Back</button>
@@ -437,14 +448,14 @@
                 <button data-amount="2500">₹2,500</button>
                 <button data-amount="5000">₹5,000</button>
             </div>
+            <div class="payment-details-box contribution-payment-details" style="margin-bottom: 16px;"></div>
             <label>Payment Method</label>
             <div class="payments">
                 <button class="active">UPI</button>
-                <button>Razorpay</button>
                 <button>Cash</button>
             </div>
             <button class="btn full" id="makeContributionBtn" style="margin-top: 20px;">
-                Confirm & Pay
+                Confirm payment details
             </button>
         </div>
     </div>
